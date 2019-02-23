@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 struct PTE {
@@ -10,15 +11,26 @@ struct PTE {
 };
 
 int main(int argc, char *argv[]) {
+    // Input arguments
+    char *input_file = argv[1];
+    int nframes = atoi(argv[2]);
+    char *algo = argv[3];
+    char *mode = argv[4];
+
+    // Opens trace file in read mode
+    FILE *trace_file = fopen(input_file, "r");
+
+    // Storage for variables on each line of the trace file
     char virtual_addr[8 + 1];
     char op_type;
-
-    FILE *trace_file = fopen(argv[1], "r");
-
-    int ctr = 0;// DELETE ME
+    
+    int ctr = 0;// DELETE ME, helps print only part of file
     while( fscanf(trace_file, "%s %c", virtual_addr, &op_type) != EOF){
+        // Size plus termination character for each part of the virtual address
         char vpn[3 + 1];
         char offset[5 + 1];
+
+        // Copies relevant parts of the virtual address into two variables
         strncpy(vpn, virtual_addr, 3);
         strncpy(offset, virtual_addr + 3, 5);
 
@@ -29,6 +41,7 @@ int main(int argc, char *argv[]) {
             break; 
     }
 
+    // Closes trace file
     fclose(trace_file);
     return 0;
 }
