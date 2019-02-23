@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 struct PTE {
     int PA;
@@ -9,13 +10,23 @@ struct PTE {
 };
 
 int main(int argc, char *argv[]) {
-    unsigned addr;
-    char rw;
+    char virtual_addr[8 + 1];
+    char op_type;
 
     FILE *trace_file = fopen(argv[1], "r");
 
-    while( fscanf(trace_file, "%x %c", &addr, &rw) != EOF){
-        printf("%x %c\n", addr, rw);
+    int ctr = 0;// DELETE ME
+    while( fscanf(trace_file, "%s %c", virtual_addr, &op_type) != EOF){
+        char vpn[3 + 1];
+        char offset[5 + 1];
+        strncpy(vpn, virtual_addr, 3);
+        strncpy(offset, virtual_addr + 3, 5);
+
+        printf("%s %c\n", vpn, op_type);
+        printf("%s %c\n", offset, op_type);
+
+        if (++ctr >= 10) // DELETE ME
+            break; 
     }
 
     fclose(trace_file);
