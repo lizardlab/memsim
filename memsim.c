@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
     char virtual_addr[8 + 1];
     char op_type;
     
-    int ctr = 0;// DELETE ME, helps print only part of file
+    int events_ctr = 0;
     while( fscanf(trace_file, "%s %c", virtual_addr, &op_type) != EOF){
         // Size plus termination character for each part of the virtual address
         char vpn[3 + 1];
@@ -37,9 +37,14 @@ int main(int argc, char *argv[]) {
         printf("%s %c\n", vpn, op_type);
         printf("%s %c\n", offset, op_type);
 
-        if (++ctr >= 10) // DELETE ME
-            break; 
+        if (++events_ctr < 10) { // DELETE ME
+        }
+        else {
+            break;
+        }
     }
+
+    printf("events in trace: %d\n", events_ctr);
 
     // Closes trace file
     fclose(trace_file);
