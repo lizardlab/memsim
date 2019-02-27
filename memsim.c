@@ -34,8 +34,11 @@ int dequeue_empty(dequeue *dq);
 int dequeue_full(dequeue *dq);
 int insert_front_dequeue(dequeue *dq, PTE entry);
 int insert_rear_dequeue(dequeue *dq, PTE entry);
+int remove_front_dequeue(dequeue *dq);
+int remove_rear_dequeue(dequeue *dq);
+void replace_PTE(dequeue *dq, PTE victim, PTE entry);
 void print_dequeue(dequeue *dq);
-int PTE_present(dequeue *dq, PTE entry);
+int PTE_present(dequeue *dq, PTE entry); // maybe return pointer to entry for use in replace PTE
 
 int main(int argc, char *argv[]) {
     // Input arguments
@@ -101,8 +104,9 @@ int main(int argc, char *argv[]) {
         vpn[3] = '\0';
         offset[5] = '\0';
 
-        printf("%s %c\n", vpn, op_type);
-        printf("%s %c\n", offset, op_type);
+//        printf("%s %c\n", vpn, op_type);
+       printf("%ld %c\n", strtol(vpn, NULL, 16), op_type);
+//        printf("%s %c\n", offset, op_type);
         printf("%s\n", virtual_addr);
 
         if (++events_ctr < 30) { // DELETE ME
@@ -138,6 +142,11 @@ int main(int argc, char *argv[]) {
     printf("events in trace: %d\n", events_ctr);
 
     print_dequeue(&Q);
+    printf("\n\n\n");
+//    remove_rear_dequeue(&Q);
+    remove_front_dequeue(&Q);
+    print_dequeue(&Q);
+
     // Closes trace file
     fclose(trace_file);
     return 0;
@@ -239,6 +248,59 @@ int PTE_present(dequeue *dq, PTE entry) {
     }
 
     return present;
+}
+
+void replace_PTE(dequeue *dq, PTE victim, PTE entry) {
+    PTE *iter = dq->rear;
+
+    while (iter != NULL) {
+        if (iter->VA == victim.VA) {
+            break;
+        }    
+        iter = iter->nextPTE;
+    }
+
+    if (iter != NULL) {
+        PTE *newPTE = (PTE*) malloc(sizeof(PTE));
+        newPTE->int_VA = entry.int_VA;
+        // fill in other struct attributes
+
+        PTE *victim = iter;
+
+        newPTE->prevPTE = victim->prevPTE;
+        newPTE->nextPTE = victim->nextPTE;
+
+        victim->prevPTE->nextPTE = newPTE;
+        victim->nextPTE->prevPTE = newPTE;
+
+        free(victim);
+    } else {
+        printf("Victim entry does not exist.\n");
+    }
+}
+
+int remove_front_dequeue(dequeue *dq) {
+    PTE *old_front = dq->front;
+
+    dq->front->prevPTE->nextPTE = NULL;
+    dq->front = dq->front->prevPTE;
+
+    free(old_front);
+    dq->size--;
+
+    return dq->size;
+}
+
+int remove_rear_dequeue(dequeue *dq) {
+    PTE *old_rear = dq->rear;
+
+    dq->rear->nextPTE->prevPTE = NULL;
+    dq->rear = dq->rear->nextPTE;
+
+    free(old_rear);
+    dq->size--;
+
+    return dq->size;
 }
 
 void print_dequeue(dequeue *dq) {
