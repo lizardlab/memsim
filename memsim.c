@@ -123,6 +123,8 @@ int main(int argc, char *argv[]) {
                         break;
                     case FIFO:
                         printf("FIFO replacement\n");
+                        remove_front_dequeue(&Q);
+                        insert_rear_dequeue(&Q, newPTE);
                         break;
                     case VMS:
                         printf("VMS replacement\n");
@@ -142,10 +144,10 @@ int main(int argc, char *argv[]) {
     printf("events in trace: %d\n", events_ctr);
 
     print_dequeue(&Q);
-    printf("\n\n\n");
+//    printf("\n\n\n");
 //    remove_rear_dequeue(&Q);
-    remove_front_dequeue(&Q);
-    print_dequeue(&Q);
+//    remove_front_dequeue(&Q);
+//    print_dequeue(&Q);
 
     // Closes trace file
     fclose(trace_file);
