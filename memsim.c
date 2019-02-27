@@ -25,6 +25,10 @@ typedef struct dequeue {
     int capacity;
 } dequeue;
 
+enum algo_types{LRU, FIFO, VMS};
+enum mode_types{QUIET, DEBUG};
+
+
 void init_dequeue(dequeue *dq, int max_size);
 int dequeue_empty(dequeue *dq);
 int dequeue_full(dequeue *dq);
@@ -43,14 +47,15 @@ int main(int argc, char *argv[]) {
     // Opens trace file in read mode
     FILE *trace_file = fopen(input_file, "r");
 
-    // Storage for variables on each line of the trace file
-    char virtual_addr[8 + 1];
-    char op_type;
-    enum algo_types{LRU, FIFO, VMS};
-    enum mode_types{QUIET, DEBUG};
-
-    dequeue Q;
-    init_dequeue(&Q, nframes);
+    if (trace_file == NULL) {
+        printf("Failed to open input file.");
+        return -1;
+    }
+    
+    if (nframes <= 0) {
+        printf("Invalid number of frames.\n");
+        return -1;
+    }
 
     enum algo_types replace_with;
     enum mode_types running_mode;
@@ -61,18 +66,26 @@ int main(int argc, char *argv[]) {
         replace_with = FIFO;
     }  else if (strcmp(algo, "vms") == 0) {
         replace_with = VMS;
+    } else {
+        printf("Algorithm not recognized.\n");
+        return -1;
     }
 
     if (strcmp(mode, "quiet") == 0) {
         running_mode = QUIET;
-        printf("Quiet mode.\n");
     } else if (strcmp(mode, "debug") == 0) {
         running_mode = DEBUG;
-        printf("Debugging mode.\n");
     }  else {
         printf("Mode not recognized.\n");
+        return -1;
     }
 
+
+    // Storage for variables on each line of the trace file
+    char virtual_addr[8 + 1];
+    char op_type;
+    dequeue Q;
+    init_dequeue(&Q, nframes);
 
     int events_ctr = 0;
     PTE newPTE;
