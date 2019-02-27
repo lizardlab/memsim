@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
         printf("%s %c\n", offset, op_type);
         printf("%s\n", virtual_addr);
 
-        if (++events_ctr < 10) { // DELETE ME
+        if (++events_ctr < 300) { // DELETE ME
 
             newPTE.int_VA = atoi(virtual_addr);
 
@@ -106,6 +106,9 @@ int dequeue_full(dequeue *dq) {
 }
 
 int insert_front_dequeue(dequeue *dq, PTE entry) {
+    if (dq->size == dq->capacity)
+        return -1;
+
     PTE *newPTE = (PTE*) malloc(sizeof(struct PTE));
     newPTE->nextPTE = NULL;
     newPTE->prevPTE = NULL;
@@ -134,6 +137,9 @@ int insert_front_dequeue(dequeue *dq, PTE entry) {
 }
 
 int insert_rear_dequeue(dequeue *dq, PTE entry) {
+    if (dq->size == dq->capacity)
+        return -1;
+
     PTE *newPTE = (PTE*) malloc(sizeof(struct PTE));
     newPTE->nextPTE = NULL;
     newPTE->prevPTE = NULL;
@@ -190,8 +196,7 @@ void print_dequeue(dequeue *dq) {
     }
     else {
         while (iter != NULL) {
-//            printf("This is PTE %d\n", iter->time_accessed);
-            printf("This is PTE %d\n", iter->int_VA);
+            printf("This is PTE #%d: %d\n", iter->time_accessed, iter->int_VA);
             iter = iter->nextPTE;
         }
     }
