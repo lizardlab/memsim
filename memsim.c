@@ -47,11 +47,13 @@ int main(int argc, char *argv[]) {
     char virtual_addr[8 + 1];
     char op_type;
     enum algo_types{LRU, FIFO, VMS};
+    enum mode_types{QUIET, DEBUG};
 
     dequeue Q;
     init_dequeue(&Q, nframes);
 
     enum algo_types replace_with;
+    enum mode_types running_mode;
 
     if (strcmp(algo, "lru") == 0) {
         replace_with = LRU;
@@ -60,6 +62,17 @@ int main(int argc, char *argv[]) {
     }  else if (strcmp(algo, "vms") == 0) {
         replace_with = VMS;
     }
+
+    if (strcmp(mode, "quiet") == 0) {
+        running_mode = QUIET;
+        printf("Quiet mode.\n");
+    } else if (strcmp(mode, "debug") == 0) {
+        running_mode = DEBUG;
+        printf("Debugging mode.\n");
+    }  else {
+        printf("Mode not recognized.\n");
+    }
+
 
     int events_ctr = 0;
     PTE newPTE;
@@ -79,7 +92,7 @@ int main(int argc, char *argv[]) {
         printf("%s %c\n", offset, op_type);
         printf("%s\n", virtual_addr);
 
-        if (++events_ctr < 300) { // DELETE ME
+        if (++events_ctr < 30) { // DELETE ME
 
             newPTE.int_VA = atoi(virtual_addr);
 
