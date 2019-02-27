@@ -31,6 +31,7 @@ int dequeue_full(dequeue *dq);
 int insert_front_dequeue(dequeue *dq, PTE entry);
 int insert_rear_dequeue(dequeue *dq, PTE entry);
 void print_dequeue(dequeue *dq);
+int PTE_present(dequeue *dq, PTE entry);
 
 int main(int argc, char *argv[]) {
     // Input arguments
@@ -45,11 +46,20 @@ int main(int argc, char *argv[]) {
     // Storage for variables on each line of the trace file
     char virtual_addr[8 + 1];
     char op_type;
-    
+    enum algo_types{LRU, FIFO, VMS};
+
     dequeue Q;
     init_dequeue(&Q, nframes);
 
-    print_dequeue(&Q);
+    enum algo_types replace_with;
+
+    if (strcmp(algo, "lru") == 0) {
+        replace_with = LRU;
+    } else if (strcmp(algo, "fifo") == 0) {
+        replace_with = FIFO;
+    }  else if (strcmp(algo, "vms") == 0) {
+        replace_with = VMS;
+    }
 
     int events_ctr = 0;
     PTE newPTE;
@@ -73,9 +83,26 @@ int main(int argc, char *argv[]) {
 
             newPTE.int_VA = atoi(virtual_addr);
 
-            if (!PTE_present(&Q, newPTE))
-                insert_rear_dequeue(&Q, newPTE);
-
+            if (!dequeue_full(&Q)) {
+                if (!PTE_present(&Q, newPTE))
+                    insert_rear_dequeue(&Q, newPTE);
+            } else {
+                switch (replace_with) {
+                    case LRU:
+                        printf("LRU replacement\n");
+                        break;
+                    case FIFO:
+                        printf("FIFO replacement\n");
+                        break;
+                    case VMS:
+                        printf("VMS replacement\n");
+                        break;
+                    default:
+                        printf("Unrecognized replacement\n");
+                        break;
+                        
+                }
+            }
         }
         else {
             break;
