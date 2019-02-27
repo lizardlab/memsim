@@ -5,6 +5,10 @@
 
 int global_time_accessed = 0; // DELETE ME testing
 
+int get_access_time() {
+    return ++global_time_accessed;
+}
+
 typedef struct PTE {
     char VA[8 + 1];
     int int_VA;
@@ -36,9 +40,10 @@ int insert_front_dequeue(dequeue *dq, PTE entry);
 int insert_rear_dequeue(dequeue *dq, PTE entry);
 int remove_front_dequeue(dequeue *dq);
 int remove_rear_dequeue(dequeue *dq);
-void replace_PTE(dequeue *dq, PTE victim, PTE entry);
+PTE *replace_PTE(dequeue *dq, PTE *victim, PTE entry);
 void print_dequeue(dequeue *dq);
 int PTE_present(dequeue *dq, PTE entry); // maybe return pointer to entry for use in replace PTE
+PTE *find_LRU(dequeue *dq);
 
 int main(int argc, char *argv[]) {
     // Input arguments
@@ -91,8 +96,18 @@ int main(int argc, char *argv[]) {
     init_dequeue(&Q, nframes);
 
     int events_ctr = 0;
+    int page_faults_ctr = 0;
+    int disk_reads_ctr = 0;
+    int disk_writes_ctr = 0;
     PTE newPTE;
+
     while( fscanf(trace_file, "%s %c", virtual_addr, &op_type) != EOF){
+        if (op_type == 'R')
+            ++disk_reads_ctr;
+
+        if (op_type == 'W')
+            ++disk_writes_ctr;
+
         // Size plus termination character for each part of the virtual address
         char vpn[3 + 1];
         char offset[5 + 1];
@@ -104,47 +119,69 @@ int main(int argc, char *argv[]) {
         vpn[3] = '\0';
         offset[5] = '\0';
 
-//        printf("%s %c\n", vpn, op_type);
-       printf("%ld %c\n", strtol(vpn, NULL, 16), op_type);
-//        printf("%s %c\n", offset, op_type);
-        printf("%s\n", virtual_addr);
+        if (running_mode == DEBUG) {
+            printf("%s %c\n", vpn, op_type);
+            printf("%ld %c\n", strtol(vpn, NULL, 16), op_type);
+            //printf("%s %c\n", offset, op_type);
+            //printf("%s\n", virtual_addr);
+        }
 
-        if (++events_ctr < 30) { // DELETE ME
+        if (++events_ctr < 300) { // DELETE ME
 
             newPTE.int_VA = atoi(virtual_addr);
 
-            if (!dequeue_full(&Q)) {
-                if (!PTE_present(&Q, newPTE))
+            if (!PTE_present(&Q, newPTE)) {
+                ++page_faults_ctr;
+                if (!dequeue_full(&Q)) {
                     insert_rear_dequeue(&Q, newPTE);
-            } else {
-                switch (replace_with) {
-                    case LRU:
-                        printf("LRU replacement\n");
-                        break;
-                    case FIFO:
-                        printf("FIFO replacement\n");
-                        remove_front_dequeue(&Q);
-                        insert_rear_dequeue(&Q, newPTE);
-                        break;
-                    case VMS:
-                        printf("VMS replacement\n");
-                        break;
-                    default:
-                        printf("Unrecognized replacement\n");
-                        break;
-                        
+                } else {
+                    switch (replace_with) {
+                        case LRU:
+                            if (running_mode == DEBUG) {
+                                printf("LRU replacement\n");
+                                printf("LRU time accessed = %d\n", find_LRU(&Q)->time_accessed);
+                                printf("VA %d replacing VA %d\n", newPTE.int_VA, find_LRU(&Q)->int_VA);
+                            }
+                            replace_PTE(&Q, find_LRU(&Q), newPTE);
+                            break;
+                        case FIFO:
+                            if (running_mode == DEBUG) {
+                                printf("FIFO replacement\n");
+                                printf("Replacing VA: %d\n", Q.front->int_VA);
+                            }
+                            remove_front_dequeue(&Q);
+                            insert_rear_dequeue(&Q, newPTE);
+                            break;
+                        case VMS:
+                            if (running_mode == DEBUG) {
+                                printf("VMS replacement\n");
+                            }
+                            break;
+                    }
                 }
             }
+            if (running_mode == DEBUG)
+                printf("Page faults: %d\n", page_faults_ctr);
         }
         else {
             break;
         }
     }
 
+    printf("\n");
+    printf("total memory frames: %d\n", Q.size);
     printf("events in trace: %d\n", events_ctr);
+    printf("total disk reads: %d\n", disk_reads_ctr);
+    printf("total disk writes: %d\n", disk_writes_ctr);
+    printf("\n");
 
     print_dequeue(&Q);
-//    printf("\n\n\n");
+
+    printf("\n\n\n");
+
+
+
+    print_dequeue(&Q);
 //    remove_rear_dequeue(&Q);
 //    remove_front_dequeue(&Q);
 //    print_dequeue(&Q);
@@ -178,7 +215,7 @@ int insert_front_dequeue(dequeue *dq, PTE entry) {
     newPTE->prevPTE = NULL;
 
     if (newPTE != NULL) {
-        newPTE->time_accessed = ++global_time_accessed; // DELETE ME
+        newPTE->time_accessed = get_access_time(); // DELETE ME
         newPTE->int_VA = entry.int_VA;
 
         if (dq->front == NULL) {
@@ -210,7 +247,7 @@ int insert_rear_dequeue(dequeue *dq, PTE entry) {
 
 
     if (newPTE != NULL) {
-        newPTE->time_accessed = ++global_time_accessed; // DELETE ME
+        newPTE->time_accessed = get_access_time(); // DELETE ME
         newPTE->int_VA = entry.int_VA;
 
         if (dq->rear == NULL) {    
@@ -236,8 +273,8 @@ int PTE_present(dequeue *dq, PTE entry) {
     PTE *iter = dq->rear;
     int present = 0;
 
-    if (dq->size == 0) {
-        printf("The dequeue is empty.\n");
+    if (dequeue_empty(dq)) {
+        return 0;
     }
     else {
         while (iter != NULL) {
@@ -252,32 +289,41 @@ int PTE_present(dequeue *dq, PTE entry) {
     return present;
 }
 
-void replace_PTE(dequeue *dq, PTE victim, PTE entry) {
-    PTE *iter = dq->rear;
+PTE *replace_PTE(dequeue *dq, PTE *victim, PTE entry) {
+    printf("Replacing...\n");
 
-    while (iter != NULL) {
-        if (iter->VA == victim.VA) {
-            break;
-        }    
-        iter = iter->nextPTE;
-    }
-
-    if (iter != NULL) {
+    if (dq->rear == NULL)
+        printf("Rear is NULL\n");
+    if (victim != NULL) {
         PTE *newPTE = (PTE*) malloc(sizeof(PTE));
         newPTE->int_VA = entry.int_VA;
+        newPTE->time_accessed = get_access_time();
         // fill in other struct attributes
-
-        PTE *victim = iter;
 
         newPTE->prevPTE = victim->prevPTE;
         newPTE->nextPTE = victim->nextPTE;
 
-        victim->prevPTE->nextPTE = newPTE;
-        victim->nextPTE->prevPTE = newPTE;
+        if (victim == dq->front) {
+            dq->front = dq->front->prevPTE;
+            printf("Replacing front...\n"); // DELETE ME
+        }
+
+        if (victim == dq->rear) {
+            dq->rear = dq->rear->nextPTE;
+            printf("Replacing rear...\n"); // DELETE ME
+        }
+
+        if (victim->nextPTE != NULL)
+            victim->nextPTE->prevPTE = newPTE;
+        
+        if (victim->prevPTE != NULL)
+            victim->prevPTE->nextPTE = newPTE;
 
         free(victim);
+
+        return newPTE;
     } else {
-        printf("Victim entry does not exist.\n");
+        return NULL;
     }
 }
 
@@ -308,7 +354,7 @@ int remove_rear_dequeue(dequeue *dq) {
 void print_dequeue(dequeue *dq) {
     PTE *iter = dq->rear;
 
-    if (dq->size == 0) {
+    if (dequeue_empty(dq)) {
         printf("The dequeue is empty.\n");
     }
     else {
@@ -317,4 +363,29 @@ void print_dequeue(dequeue *dq) {
             iter = iter->nextPTE;
         }
     }
+}
+
+PTE *find_LRU(dequeue *dq) {
+    if (dequeue_empty(dq)) {
+        // Cannot find LRU of empty dequeue
+        return NULL;
+    }
+
+    PTE *iter = dq->rear;
+    PTE *lruPTE = iter;
+    if (dq->rear == NULL)
+        printf("NULL Error!\n"); // DELETE ME
+    int min_time_accessed = iter->time_accessed;
+
+
+    while (iter != NULL) {
+        if (iter->time_accessed < min_time_accessed) {
+            min_time_accessed = iter->time_accessed;
+            lruPTE = iter;
+        }
+
+        iter = iter->nextPTE;
+    }
+
+    return lruPTE;
 }
