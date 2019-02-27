@@ -42,7 +42,7 @@ int remove_front_dequeue(dequeue *dq);
 int remove_rear_dequeue(dequeue *dq);
 PTE *replace_PTE(dequeue *dq, PTE *victim, PTE entry);
 void print_dequeue(dequeue *dq);
-int PTE_present(dequeue *dq, PTE entry); // maybe return pointer to entry for use in replace PTE
+PTE *PTE_present(dequeue *dq, PTE entry); // maybe return pointer to entry for use in replace PTE
 PTE *find_LRU(dequeue *dq);
 
 int main(int argc, char *argv[]) {
@@ -130,7 +130,8 @@ int main(int argc, char *argv[]) {
 
             newPTE.int_VA = atoi(virtual_addr);
 
-            if (!PTE_present(&Q, newPTE)) {
+            PTE *pres = PTE_present(&Q, newPTE);
+            if (pres == NULL) {
                 ++page_faults_ctr;
                 if (!dequeue_full(&Q)) {
                     insert_rear_dequeue(&Q, newPTE);
@@ -158,6 +159,10 @@ int main(int argc, char *argv[]) {
                             }
                             break;
                     }
+                }
+            } else {
+                if (replace_with == LRU) {
+                    pres->time_accessed = get_access_time();
                 }
             }
             if (running_mode == DEBUG)
@@ -269,9 +274,8 @@ int insert_rear_dequeue(dequeue *dq, PTE entry) {
     return dq->size;
 }
 
-int PTE_present(dequeue *dq, PTE entry) {
+PTE *PTE_present(dequeue *dq, PTE entry) {
     PTE *iter = dq->rear;
-    int present = 0;
 
     if (dequeue_empty(dq)) {
         return 0;
@@ -279,14 +283,13 @@ int PTE_present(dequeue *dq, PTE entry) {
     else {
         while (iter != NULL) {
             if (iter->int_VA == entry.int_VA) {
-                present = 1;
-                break;
+                return iter;
             }
             iter = iter->nextPTE;
         }
-    }
 
-    return present;
+        return NULL;
+    }
 }
 
 PTE *replace_PTE(dequeue *dq, PTE *victim, PTE entry) {
