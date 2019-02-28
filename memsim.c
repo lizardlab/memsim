@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
             //printf("%s\n", virtual_addr);
         }
 
-        if (++events_ctr < 300) { // DELETE ME
+        if (++events_ctr < 3000) { // DELETE ME
 
             newPTE.int_VA = atoi(virtual_addr);
 
@@ -184,9 +184,6 @@ int main(int argc, char *argv[]) {
 
     printf("\n\n\n");
 
-
-
-    print_dequeue(&Q);
 //    remove_rear_dequeue(&Q);
 //    remove_front_dequeue(&Q);
 //    print_dequeue(&Q);
@@ -297,6 +294,8 @@ PTE *replace_PTE(dequeue *dq, PTE *victim, PTE entry) {
 
     if (dq->rear == NULL)
         printf("Rear is NULL\n");
+    if (dq->rear == NULL)
+        printf("Victim is NULL\n");
     if (victim != NULL) {
         PTE *newPTE = (PTE*) malloc(sizeof(PTE));
         newPTE->int_VA = entry.int_VA;
@@ -307,12 +306,19 @@ PTE *replace_PTE(dequeue *dq, PTE *victim, PTE entry) {
         newPTE->nextPTE = victim->nextPTE;
 
         if (victim == dq->front) {
-            dq->front = dq->front->prevPTE;
+            if (dq->front->prevPTE != NULL)
+                dq->front = dq->front->prevPTE;
+            else
+                dq->front = NULL;
             printf("Replacing front...\n"); // DELETE ME
         }
 
         if (victim == dq->rear) {
-            dq->rear = dq->rear->nextPTE;
+            if (dq->rear != NULL)
+                dq->rear = dq->rear->nextPTE;
+            else
+                dq->rear = NULL;
+            
             printf("Replacing rear...\n"); // DELETE ME
         }
 
@@ -326,6 +332,7 @@ PTE *replace_PTE(dequeue *dq, PTE *victim, PTE entry) {
 
         return newPTE;
     } else {
+        insert_rear_dequeue(dq, entry);
         return NULL;
     }
 }
@@ -377,9 +384,15 @@ PTE *find_LRU(dequeue *dq) {
     PTE *iter = dq->rear;
     PTE *lruPTE = iter;
     if (dq->rear == NULL)
-        printf("NULL Error!\n"); // DELETE ME
-    int min_time_accessed = iter->time_accessed;
+        printf("NULL rear Error!\n"); // DELETE ME
 
+    if (dq->front == NULL)
+        printf("NULL front Error!\n"); // DELETE ME
+
+    int min_time_accessed = -1;
+
+    if (iter != NULL)
+        min_time_accessed = iter->time_accessed;
 
     while (iter != NULL) {
         if (iter->time_accessed < min_time_accessed) {
