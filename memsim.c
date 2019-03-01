@@ -237,8 +237,8 @@ int insert_front_dequeue(dequeue *dq, PTE entry) {
             dq->rear = newPTE;
         }
         else {
-            newPTE->nextPTE = dq->front;
-            dq->front->prevPTE = newPTE;
+            newPTE->prevPTE = dq->front;
+            dq->front->nextPTE = newPTE;
             dq->front = newPTE;
         }
     } 
@@ -326,7 +326,7 @@ PTE *replace_PTE(dequeue *dq, PTE *victim, PTE entry) {
         }
 
         if (victim == dq->rear) {
-            if (dq->rear != NULL)
+            if (dq->rear->nextPTE != NULL)
                 dq->rear = dq->rear->nextPTE;
             else
                 dq->rear = NULL;
