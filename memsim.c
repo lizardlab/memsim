@@ -96,17 +96,15 @@ int main(int argc, char *argv[]) {
     init_dequeue(&Q, nframes);
 
     int events_ctr = 0;
-    int page_faults_ctr = 0;
     int disk_reads_ctr = 0;
     int disk_writes_ctr = 0;
+    int hits_ctr = 0;
+    int fault_ctr = 0;
     PTE newPTE;
 
     while( fscanf(trace_file, "%s %c", virtual_addr, &op_type) != EOF){
-        if (op_type == 'R')
-            ++disk_reads_ctr;
-
-        if (op_type == 'W')
-            ++disk_writes_ctr;
+        if (op_type == 'W') // TODO: This should occur when the victim page had a write operation and was dirty
+            newPTE.dirty = 1;
 
         // Size plus termination character for each part of the virtual address
         char vpn[3 + 1];
@@ -132,7 +130,10 @@ int main(int argc, char *argv[]) {
 
             PTE *pres = PTE_present(&Q, newPTE);
             if (pres == NULL) {
-                ++page_faults_ctr;
+                ++fault_ctr;
+                if (op_type == 'R') // TODO: This should occur in case of page fault
+                    ++disk_reads_ctr;
+
                 if (!dequeue_full(&Q)) {
                     insert_rear_dequeue(&Q, newPTE);
                 } else {
@@ -141,8 +142,12 @@ int main(int argc, char *argv[]) {
                             if (running_mode == DEBUG) {
                                 printf("LRU replacement\n");
                                 printf("LRU time accessed = %d\n", find_LRU(&Q)->time_accessed);
+                                printf("LRU dirty bit = %d\n", find_LRU(&Q)->dirty);
                                 printf("VA %d replacing VA %d\n", newPTE.int_VA, find_LRU(&Q)->int_VA);
                             }
+
+                            if (find_LRU(&Q)->dirty == 1)
+                                ++disk_writes_ctr;
                             replace_PTE(&Q, find_LRU(&Q), newPTE);
                             break;
                         case FIFO:
@@ -150,7 +155,12 @@ int main(int argc, char *argv[]) {
                                 printf("FIFO replacement\n");
                                 printf("Replacing VA: %d\n", Q.front->int_VA);
                             }
-                            remove_front_dequeue(&Q);
+                            if (Q.front != NULL) {
+                                if (op_type == 'W') { // TODO: This should occur when the victim page had a write operation and was dirty
+                                    ++disk_writes_ctr;
+                                }
+                                remove_front_dequeue(&Q);
+                            }
                             insert_rear_dequeue(&Q, newPTE);
                             break;
                         case VMS:
@@ -161,12 +171,15 @@ int main(int argc, char *argv[]) {
                     }
                 }
             } else {
+                ++hits_ctr;
+                if (op_type == 'W')
+                    pres->dirty = 1;
                 if (replace_with == LRU) {
                     pres->time_accessed = get_access_time();
                 }
             }
             if (running_mode == DEBUG)
-                printf("Page faults: %d\n", page_faults_ctr);
+                printf("hits: %d\n", hits_ctr);
         }
         else {
             break;
@@ -340,24 +353,30 @@ PTE *replace_PTE(dequeue *dq, PTE *victim, PTE entry) {
 int remove_front_dequeue(dequeue *dq) {
     PTE *old_front = dq->front;
 
-    dq->front->prevPTE->nextPTE = NULL;
-    dq->front = dq->front->prevPTE;
+    if (dq->front != NULL) {
+        if (dq->front->prevPTE != NULL) {
+            dq->front->prevPTE->nextPTE = NULL;
+            dq->front = dq->front->prevPTE;
+        }
+        free(old_front);
+    }
 
-    free(old_front);
     dq->size--;
-
     return dq->size;
 }
 
 int remove_rear_dequeue(dequeue *dq) {
     PTE *old_rear = dq->rear;
 
-    dq->rear->nextPTE->prevPTE = NULL;
-    dq->rear = dq->rear->nextPTE;
+    if (dq->rear != NULL) {
+        if (dq->rear->nextPTE != NULL) {
+            dq->rear->nextPTE->prevPTE = NULL;
+            dq->rear = dq->rear->nextPTE;
+        }
+        free(old_rear);
+    }
 
-    free(old_rear);
     dq->size--;
-
     return dq->size;
 }
 
