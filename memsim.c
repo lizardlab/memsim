@@ -125,11 +125,16 @@ int main(int argc, char *argv[]) {
 
         if (++events_ctr < 3000) { // DELETE ME
 
-            newPTE.int_VA = atoi(virtual_addr);
 
+            printf("Breaking before atoi\n");
+            newPTE.int_VA = atoi(virtual_addr);
+            printf("Breaking before PTE_present\n");
             PTE *pres = PTE_present(&Q, newPTE);
+            printf("Breaking after PTE_present\n");
             if (pres == NULL) {
                 ++fault_ctr;
+                if (running_mode == DEBUG)
+                    printf("faults: %d\n", fault_ctr);
                 if (op_type == 'R') // TODO: This should occur in case of page fault
                     ++disk_reads_ctr;
 
@@ -284,12 +289,16 @@ int insert_rear_dequeue(dequeue *dq, PTE entry) {
 }
 
 PTE *PTE_present(dequeue *dq, PTE entry) {
+    printf("Inside PTE present\n");
     PTE *iter = dq->rear;
 
     if (dequeue_empty(dq)) {
-        return 0;
+        printf("Inside PTE present and queue is empty\n");
+        return NULL;
     }
     else {
+        printf("Inside PTE present and queue is NOT empty\n");
+//        return NULL;
         while (iter != NULL) {
             if (iter->int_VA == entry.int_VA) {
                 return iter;
@@ -394,8 +403,10 @@ void print_dequeue(dequeue *dq) {
 }
 
 PTE *find_LRU(dequeue *dq) {
+    printf("Entered find LRU\n");
     if (dequeue_empty(dq)) {
         // Cannot find LRU of empty dequeue
+        printf("Queue is empty in find_LRU\n");
         return NULL;
     }
 
