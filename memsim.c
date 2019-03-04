@@ -53,14 +53,6 @@ int main(int argc, char *argv[]) {
     char *algo = argv[3];
     char *mode = argv[4];
 
-    // Opens trace file in read mode
-    FILE *trace_file = fopen(input_file, "r");
-
-    if (trace_file == NULL) {
-        printf("Failed to open input file.");
-        return -1;
-    }
-    
     if (nframes <= 0) {
         printf("Invalid number of frames.\n");
         return -1;
@@ -75,8 +67,17 @@ int main(int argc, char *argv[]) {
         replace_with = FIFO;
     }  else if (strcmp(algo, "vms") == 0) {
         replace_with = VMS;
+        // ignore user's specification for trace on VMS
+        input_file = "bzip.trace";
     } else {
         printf("Algorithm not recognized.\n");
+        return -1;
+    }
+    // Opens trace file in read mode
+    FILE *trace_file = fopen(input_file, "r");
+
+    if (trace_file == NULL) {
+        printf("Failed to open input file.");
         return -1;
     }
 
