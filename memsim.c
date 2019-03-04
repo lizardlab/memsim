@@ -109,17 +109,15 @@ int main(int argc, char *argv[]) {
 
         newPTE.virtual_page_number = virtual_addr / PAGE_SIZE;
         if (running_mode == DEBUG) {
-            printf("%x %c\n", virtual_addr, op_type);
+            printf("Reading VA: %x %c\n", virtual_addr, op_type);
+            printf("Reading VPN: %x\n", newPTE.virtual_page_number);
         }
 
-        if (++events_ctr < 3000) { // DELETE ME
+        if (++events_ctr < 30) { // DELETE ME
 
 
-            printf("Breaking before atoi\n");
             newPTE.virtual_page_number = virtual_addr;
-            printf("Breaking before PTE_present\n");
             PTE *pres = PTE_present(&Q, newPTE);
-            printf("Breaking after PTE_present\n");
             if (pres == NULL) {
                 ++fault_ctr;
                 if (running_mode == DEBUG)
@@ -136,7 +134,7 @@ int main(int argc, char *argv[]) {
                                 printf("LRU replacement\n");
                                 printf("LRU time accessed = %d\n", find_LRU(&Q)->time_accessed);
                                 printf("LRU dirty bit = %d\n", find_LRU(&Q)->dirty);
-                                printf("VA %d replacing VA %d\n", newPTE.virtual_page_number, find_LRU(&Q)->virtual_page_number);
+                                printf("VA %x replacing VA %x\n", newPTE.virtual_page_number, find_LRU(&Q)->virtual_page_number);
                             }
 
                             if (find_LRU(&Q)->dirty == 1)
@@ -146,7 +144,7 @@ int main(int argc, char *argv[]) {
                         case FIFO:
                             if (running_mode == DEBUG) {
                                 printf("FIFO replacement\n");
-                                printf("Replacing VA: %d\n", Q.front->virtual_page_number);
+                                printf("Replacing VA: %x\n", Q.front->virtual_page_number);
                             }
                             if (Q.front != NULL) {
                                 if (op_type == 'W') { // TODO: This should occur when the victim page had a write operation and was dirty
@@ -288,13 +286,10 @@ PTE *PTE_present(dequeue *dq, PTE entry) {
     else {
         printf("Inside PTE present and queue is NOT empty\n");
 
-        print_dequeue(dq);
-        printf("\n\n\n");
-
         while (iter != NULL) {
             printf("iter is not NULL in PTE Present\n");
-            printf("Searching for entry VA: %d \n", entry.virtual_page_number);
-            printf("VA = %d\n", iter->virtual_page_number);
+            printf("Searching for entry VA: %x \n", entry.virtual_page_number);
+            printf("VA = %x\n", iter->virtual_page_number);
             if (iter->virtual_page_number == entry.virtual_page_number) {
                 return iter;
             }
@@ -391,7 +386,7 @@ void print_dequeue(dequeue *dq) {
     }
     else {
         while (iter != NULL) {
-            printf("This is PTE #%d: %d\n", iter->time_accessed, iter->virtual_page_number);
+            printf("This is PTE #%d, VA: %x\n", iter->time_accessed, iter->virtual_page_number);
             iter = iter->nextPTE;
         }
     }
