@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define PAGE_SIZE 4096
+
 int global_time_accessed = 0; // DELETE ME testing
 
 int get_access_time() {
@@ -9,8 +11,8 @@ int get_access_time() {
 }
 
 typedef struct PTE {
-    char VA[8 + 1];
-    int int_VA;
+    unsigned virtual_page_number;
+    int offset;
 
     int valid;
     int present;
@@ -89,7 +91,7 @@ int main(int argc, char *argv[]) {
 
 
     // Storage for variables on each line of the trace file
-    char virtual_addr[8 + 1];
+    unsigned virtual_addr;
     char op_type;
     dequeue Q;
     init_dequeue(&Q, nframes);
@@ -101,33 +103,20 @@ int main(int argc, char *argv[]) {
     int fault_ctr = 0;
     PTE newPTE;
 
-    while( fscanf(trace_file, "%s %c", virtual_addr, &op_type) != EOF){
+    while( fscanf(trace_file, "%x %c", &virtual_addr, &op_type) != EOF){
         if (op_type == 'W') // TODO: This should occur when the victim page had a write operation and was dirty
             newPTE.dirty = 1;
 
-        // Size plus termination character for each part of the virtual address
-        char vpn[3 + 1];
-        char offset[5 + 1];
-
-        // Copies relevant parts of the virtual address into two variables
-        strncpy(vpn, virtual_addr, 3);
-        strncpy(offset, virtual_addr + 3, 5);
-
-        vpn[3] = '\0';
-        offset[5] = '\0';
-
+        newPTE.virtual_page_number = virtual_addr / PAGE_SIZE;
         if (running_mode == DEBUG) {
-            printf("%s %c\n", vpn, op_type);
-            printf("%ld %c\n", strtol(vpn, NULL, 16), op_type);
-            //printf("%s %c\n", offset, op_type);
-            //printf("%s\n", virtual_addr);
+            printf("%x %c\n", virtual_addr, op_type);
         }
 
         if (++events_ctr < 3000) { // DELETE ME
 
 
             printf("Breaking before atoi\n");
-            newPTE.int_VA = atoi(virtual_addr);
+            newPTE.virtual_page_number = virtual_addr;
             printf("Breaking before PTE_present\n");
             PTE *pres = PTE_present(&Q, newPTE);
             printf("Breaking after PTE_present\n");
@@ -147,7 +136,7 @@ int main(int argc, char *argv[]) {
                                 printf("LRU replacement\n");
                                 printf("LRU time accessed = %d\n", find_LRU(&Q)->time_accessed);
                                 printf("LRU dirty bit = %d\n", find_LRU(&Q)->dirty);
-                                printf("VA %d replacing VA %d\n", newPTE.int_VA, find_LRU(&Q)->int_VA);
+                                printf("VA %d replacing VA %d\n", newPTE.virtual_page_number, find_LRU(&Q)->virtual_page_number);
                             }
 
                             if (find_LRU(&Q)->dirty == 1)
@@ -157,7 +146,7 @@ int main(int argc, char *argv[]) {
                         case FIFO:
                             if (running_mode == DEBUG) {
                                 printf("FIFO replacement\n");
-                                printf("Replacing VA: %d\n", Q.front->int_VA);
+                                printf("Replacing VA: %d\n", Q.front->virtual_page_number);
                             }
                             if (Q.front != NULL) {
                                 if (op_type == 'W') { // TODO: This should occur when the victim page had a write operation and was dirty
@@ -235,7 +224,7 @@ int insert_front_dequeue(dequeue *dq, PTE entry) {
 
     if (newPTE != NULL) {
         newPTE->time_accessed = get_access_time(); // DELETE ME
-        newPTE->int_VA = entry.int_VA;
+        newPTE->virtual_page_number = entry.virtual_page_number;
 
         if (dq->front == NULL) {
             dq->front = newPTE;
@@ -267,7 +256,7 @@ int insert_rear_dequeue(dequeue *dq, PTE entry) {
 
     if (newPTE != NULL) {
         newPTE->time_accessed = get_access_time(); // DELETE ME
-        newPTE->int_VA = entry.int_VA;
+        newPTE->virtual_page_number = entry.virtual_page_number;
 
         if (dq->rear == NULL) {    
             dq->rear = newPTE;
@@ -298,9 +287,15 @@ PTE *PTE_present(dequeue *dq, PTE entry) {
     }
     else {
         printf("Inside PTE present and queue is NOT empty\n");
-//        return NULL;
+
+        print_dequeue(dq);
+        printf("\n\n\n");
+
         while (iter != NULL) {
-            if (iter->int_VA == entry.int_VA) {
+            printf("iter is not NULL in PTE Present\n");
+            printf("Searching for entry VA: %d \n", entry.virtual_page_number);
+            printf("VA = %d\n", iter->virtual_page_number);
+            if (iter->virtual_page_number == entry.virtual_page_number) {
                 return iter;
             }
             iter = iter->nextPTE;
@@ -319,7 +314,7 @@ PTE *replace_PTE(dequeue *dq, PTE *victim, PTE entry) {
         printf("Victim is NULL\n");
     if (victim != NULL) {
         PTE *newPTE = (PTE*) malloc(sizeof(PTE));
-        newPTE->int_VA = entry.int_VA;
+        newPTE->virtual_page_number = entry.virtual_page_number;
         newPTE->time_accessed = get_access_time();
         // fill in other struct attributes
 
@@ -396,7 +391,7 @@ void print_dequeue(dequeue *dq) {
     }
     else {
         while (iter != NULL) {
-            printf("This is PTE #%d: %d\n", iter->time_accessed, iter->int_VA);
+            printf("This is PTE #%d: %d\n", iter->time_accessed, iter->virtual_page_number);
             iter = iter->nextPTE;
         }
     }
