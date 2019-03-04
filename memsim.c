@@ -33,7 +33,6 @@ typedef struct dequeue {
 enum algo_types{LRU, FIFO, VMS};
 enum mode_types{QUIET, DEBUG};
 
-
 void init_dequeue(dequeue *dq, int max_size);
 int dequeue_empty(dequeue *dq);
 int dequeue_full(dequeue *dq);
@@ -68,16 +67,21 @@ int main(int argc, char *argv[]) {
     }  else if (strcmp(algo, "vms") == 0) {
         replace_with = VMS;
         // ignore user's specification for trace on VMS
-        input_file = "bzip.trace";
+        input_file = "gcc.trace";
     } else {
         printf("Algorithm not recognized.\n");
         return -1;
     }
+
     // Opens trace file in read mode
     FILE *trace_file = fopen(input_file, "r");
-
     if (trace_file == NULL) {
         printf("Failed to open input file.");
+        return -1;
+    }
+
+    if (mode == NULL)  {
+        printf("No mode given\n");
         return -1;
     }
 
@@ -89,7 +93,6 @@ int main(int argc, char *argv[]) {
         printf("Mode not recognized.\n");
         return -1;
     }
-
 
     // Storage for variables on each line of the trace file
     unsigned virtual_addr;
@@ -115,8 +118,6 @@ int main(int argc, char *argv[]) {
         }
 
         if (++events_ctr < 30) { // DELETE ME
-
-
             newPTE.virtual_page_number = virtual_addr;
             PTE *pres = PTE_present(&Q, newPTE);
             if (pres == NULL) {
