@@ -38,10 +38,6 @@ typedef struct PTE {
     TAILQ_ENTRY(PTE) page_table;
 } PTE;
 typedef TAILQ_HEAD(tailhead, PTE) head_t;
-/* typedef TAILQ_HEAD(p1head, PTE) head_t1;
-typedef TAILQ_HEAD(p2head, PTE) head_t2;
-typedef TAILQ_HEAD(cleanhead, PTE) head_cn;
-typedef TAILQ_HEAD(dirtyhead, PTE) head_dt; */
 
 enum algo_types{LRU, FIFO, VMS};
 enum mode_types{QUIET, DEBUG};
@@ -55,6 +51,7 @@ void print_dequeue(head_t *head);
 PTE *PTE_present(head_t *head, PTE *entry); // maybe return pointer to entry for use in replace PTE
 PTE *find_LRU(head_t *head);
 int dequeue_full();
+void PTE_reclaim(head_t *global, head_t *process, PTE *entry);
 
 int main(int argc, char *argv[]) {
     // Input arguments
@@ -294,10 +291,20 @@ void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE
             }
         }
 }
+<<<<<<< HEAD
 
 PTE *PTE_reclaim(head_t *head, PTE *entry){
     if(PTE_present(head, entry) != NULL){
 
+=======
+void PTE_reclaim(head_t *global, head_t *process, PTE *entry){
+    struct PTE *reclaimer = PTE_present(global, entry);
+    if(reclaimer != NULL){
+        TAILQ_INSERT_TAIL(process, entry, page_table);
+    }
+    else{
+        TAILQ_INSERT_TAIL(global, entry, page_table);
+>>>>>>> 79cece000277828b27262734b45cea07ec099dcc
     }
 }
 
