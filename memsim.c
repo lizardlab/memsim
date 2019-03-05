@@ -67,6 +67,8 @@ int main(int argc, char *argv[]) {
     queue_capacity = nframes;
     RSS_1 = nframes/2;
     RSS_2 = nframes/2;
+    clean_list_capacity = nframes/2+1;
+    dirty_list_capacity = nframes/2+1;
 
     enum algo_types replace_with;
 
@@ -290,12 +292,6 @@ void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE
             }
         }
 }
-<<<<<<< HEAD
-
-PTE *PTE_reclaim(head_t *head, PTE *entry){
-    if(PTE_present(head, entry) != NULL){
-
-=======
 void PTE_reclaim(head_t *global, head_t *process, PTE *entry){
     struct PTE *reclaimer = PTE_present(global, entry);
     if(reclaimer != NULL){
@@ -303,7 +299,6 @@ void PTE_reclaim(head_t *global, head_t *process, PTE *entry){
     }
     else{
         TAILQ_INSERT_TAIL(global, entry, page_table);
->>>>>>> 79cece000277828b27262734b45cea07ec099dcc
     }
 }
 
