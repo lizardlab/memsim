@@ -250,12 +250,13 @@ void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE
             if (running_mode == DEBUG) printf("New page belongs to P2 %d\n", first_digit);
         }
 
+        PTE *foundPTE = NULL;
         if (newPTE->PID == 1) {
-            if (PTE_present(head1, newPTE)) {
+            if (foundPTE = PTE_present(head1, newPTE) != NULL) {
 
-            } else if (PTE_present(cleanhead, newPTE)) {
+            } else if (foundPTE = PTE_present(cleanhead, newPTE)) {
 
-            } else if (PTE_present(dirtyhead, newPTE)) {
+            } else if (foundPTE = PTE_present(dirtyhead, newPTE)) {
 
             } else {
                 if (p1_list_size == RSS_1) {
@@ -299,11 +300,11 @@ void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE
                 ++p1_list_size;
             }
         } else {
-            if (PTE_present(head1, newPTE)) {
+            if (foundPTE = PTE_present(head1, newPTE) != NULL) {
 
-            } else if (PTE_present(cleanhead, newPTE)) {
+            } else if (foundPTE = PTE_present(cleanhead, newPTE) != NULL) {
 
-            } else if (PTE_present(dirtyhead, newPTE)) {
+            } else if (foundPTE = PTE_present(dirtyhead, newPTE) != NULL) {
 
             } else {
                 if (p2_list_size == RSS_2) {
