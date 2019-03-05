@@ -6,7 +6,9 @@
 #define PAGE_SIZE 4096
 int queue_size = 0;
 int queue_capacity = 0;
-int global_time_accessed = 0; // DELETE ME testing
+int global_time_accessed = 0;
+int disk_writes_ctr = 0;
+int disk_reads_ctr = 0;
 
 int get_access_time() {
     return ++global_time_accessed;
@@ -29,6 +31,8 @@ enum algo_types{LRU, FIFO, VMS};
 enum mode_types{QUIET, DEBUG};
 enum mode_types running_mode;
 
+void lru(head_t head, struct PTE *newPTE);
+void fifo(head_t head, struct PTE *newPTE);
 void replace_PTE(head_t *head, PTE *victim, PTE *entry);
 void print_dequeue(head_t *head);
 PTE *PTE_present(head_t *head, PTE *entry); // maybe return pointer to entry for use in replace PTE
@@ -92,12 +96,11 @@ int main(int argc, char *argv[]) {
     TAILQ_INIT(&head);
 
     int events_ctr = 0;
-    int disk_reads_ctr = 0;
-    int disk_writes_ctr = 0;
     int hits_ctr = 0;
     int fault_ctr = 0;
 
     while(fscanf(trace_file, "%x %c", &virtual_addr, &op_type) != EOF){
+        events_ctr++;
         PTE *newPTE = malloc(sizeof(PTE));
         if (op_type == 'W') // TODO: This should occur when the victim page had a write operation and was dirty
             newPTE->dirty = 1;
@@ -108,48 +111,26 @@ int main(int argc, char *argv[]) {
             printf("Reading VPN: %x\n", newPTE->virtual_page_number);
         }
 
-        if (++events_ctr < 30) { // DELETE ME
+//        if (++events_ctr < 30) { // DELETE ME
+        if (1 == 1) { // DELETE ME
             newPTE->virtual_page_number = virtual_addr;
             PTE *pres = PTE_present(&head, newPTE);
             if (pres == NULL) {
                 ++fault_ctr;
-                if (running_mode == DEBUG)
-                    printf("faults: %d\n", fault_ctr);
                 if (op_type == 'R') // TODO: This should occur in case of page fault
                     ++disk_reads_ctr;
-
+                if (running_mode == DEBUG)
+                    printf("faults: %d\n", fault_ctr);
                 if (!dequeue_full()) {
                     TAILQ_INSERT_TAIL(&head, newPTE, page_table);
                     queue_size++;
                 } else {
                     switch (replace_with) {
                         case LRU:
-                            if (running_mode == DEBUG) {
-                                printf("LRU replacement\n");
-                                printf("LRU time accessed = %d\n", find_LRU(&head)->time_accessed);
-                                printf("LRU dirty bit = %d\n", find_LRU(&head)->dirty);
-                                printf("VA %x replacing VA %x\n", newPTE->virtual_page_number, find_LRU(&head)->virtual_page_number);
-                            }
-
-                            if (find_LRU(&head)->dirty == 1)
-                                ++disk_writes_ctr;
-                            replace_PTE(&head, find_LRU(&head), newPTE);
+                            lru(head, newPTE);
                             break;
                         case FIFO:
-                            if (running_mode == DEBUG) {
-                                printf("FIFO replacement\n");
-                                printf("Replacing VA: %x\n", TAILQ_FIRST(&head)->virtual_page_number);
-                            }
-                            if (op_type == 'W') { // TODO: This should occur when the victim page had a write operation and was dirty
-                                ++disk_writes_ctr;
-                            }
-                            if (!TAILQ_EMPTY(&head)) {
-                                struct PTE *first = TAILQ_FIRST(&head);
-                                TAILQ_REMOVE(&head, first, page_table);
-                                queue_size--;
-                            }
-                            TAILQ_INSERT_TAIL(&head, newPTE, page_table);
-                            queue_size++;
+                            fifo(head, newPTE);
                             break;
                         case VMS:
                             if (running_mode == DEBUG) {
@@ -180,11 +161,41 @@ int main(int argc, char *argv[]) {
     printf("total disk writes: %d\n", disk_writes_ctr);
     printf("\n");
 
-    print_dequeue(&head);
+    if(running_mode == DEBUG) print_dequeue(&head);
 
     // Closes trace file
     fclose(trace_file);
     return 0;
+}
+void lru(head_t head, struct PTE *newPTE){
+    if (running_mode == DEBUG) {
+        printf("LRU replacement\n");
+        printf("LRU time accessed = %d\n", find_LRU(&head)->time_accessed);
+        printf("LRU dirty bit = %d\n", find_LRU(&head)->dirty);
+        printf("VA %x replacing VA %x\n", newPTE->virtual_page_number, find_LRU(&head)->virtual_page_number);
+    }
+
+    if (find_LRU(&head)->dirty == 1)
+        ++disk_writes_ctr;
+    replace_PTE(&head, find_LRU(&head), newPTE);
+}
+void fifo(head_t head, struct PTE *newPTE){
+    if (running_mode == DEBUG) {
+        printf("FIFO replacement\n");
+        printf("Replacing VA: %x\n", TAILQ_FIRST(&head)->virtual_page_number);
+    }
+    
+    
+    if (!TAILQ_EMPTY(&head)) {
+        struct PTE *first = TAILQ_FIRST(&head);
+        if (first->dirty) { // TODO: This should occur when the victim page had a write operation and was dirty
+            ++disk_writes_ctr;
+        }
+        TAILQ_REMOVE(&head, first, page_table);
+        queue_size--;
+    }
+    TAILQ_INSERT_TAIL(&head, newPTE, page_table);
+    queue_size++;
 }
 
 PTE *PTE_present(head_t *head, PTE *entry) {
