@@ -1,2 +1,5 @@
 .DS_Store
 .vs
+*.aux
+*.log
+*.gz
