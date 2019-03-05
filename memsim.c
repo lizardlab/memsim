@@ -256,7 +256,14 @@ void vms(head_t1 *head1, head_t2 *head2, head_cn *cleanhead, head_dt *dirtyhead,
                 p1_list_size--;
 
                 if (first->dirty == 1) {
-                    TAILQ_INSERT_TAIL(dirtyhead, first, page_table);
+                    if (dirty_list_size == dirty_list_capacity) {
+                        ++disk_writes_ctr;
+                        struct PTE *first = TAILQ_FIRST(dirtyhead);
+                        TAILQ_REMOVE(dirtyhead, first, page_table);
+                        TAILQ_INSERT_TAIL(dirtyhead, newPTE, page_table);
+                    } else {
+                        dirty_list_size++;
+                    }
                 } else {
                     TAILQ_INSERT_TAIL(cleanhead, first, page_table);
                 }
@@ -273,6 +280,7 @@ void vms(head_t1 *head1, head_t2 *head2, head_cn *cleanhead, head_dt *dirtyhead,
                 p2_list_size--;
 
                 if (first->dirty == 1) {
+                    if (dirty_list_size == dirty_list_capacity)
                     TAILQ_INSERT_TAIL(dirtyhead, first, page_table);
                 } else {
                     TAILQ_INSERT_TAIL(cleanhead, first, page_table);
@@ -282,16 +290,6 @@ void vms(head_t1 *head1, head_t2 *head2, head_cn *cleanhead, head_dt *dirtyhead,
                 p2_list_size++;
             }
         }
-    /*
-    if (entry->PID == 1) {
-        p1_list_size++;
-    }
-    else
-    {
-        p2_list_size++;        
-    }
-   */ 
-
 }
 
 PTE *PTE_present(head_t *head, PTE *entry) {
