@@ -225,7 +225,7 @@ void fifo(head_t head, struct PTE *newPTE){
         printf("Replacing VA: %x\n", TAILQ_FIRST(&head)->virtual_page_number);
     }
     
-    if (dequeue_full()) { // should be if full
+    if (dequeue_full()) {
         struct PTE *first = TAILQ_FIRST(&head);
 
         if (first->dirty == 1)
@@ -240,15 +240,20 @@ void fifo(head_t head, struct PTE *newPTE){
 }
 
 void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE *newPTE) {
-        unsigned first_digit = newPTE->virtual_page_number / 268435456;
+        unsigned first_digit = newPTE->virtual_page_number / 65536;
+
         if (first_digit == 3) {
             newPTE->PID = 1;
+            if (running_mode == DEBUG) printf("New page belongs to P1: %d\n", first_digit);
         } else {
             newPTE->PID = 2;
+            if (running_mode == DEBUG) printf("New page belongs to P2 %d\n", first_digit);
         }
 
         if (newPTE->PID == 1) {
             if (p1_list_size == RSS_1) {
+                if (running_mode == DEBUG) printf("P1 list is full\n");
+
                 struct PTE *first = TAILQ_FIRST(head1);
                 TAILQ_REMOVE(head1, first, page_table);
                 p1_list_size--;
@@ -276,6 +281,7 @@ void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE
             }
         } else {
             if (p2_list_size == RSS_2) {
+                if (running_mode == DEBUG) printf("P2 list is full\n");
                 struct PTE *first = TAILQ_FIRST(head2);
                 TAILQ_REMOVE(head2, first,  page_table);
                 p2_list_size--;
