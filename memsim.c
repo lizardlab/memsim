@@ -251,85 +251,101 @@ void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE
         }
 
         if (newPTE->PID == 1) {
-            if (p1_list_size == RSS_1) {
-                if (running_mode == DEBUG) printf("P1 list is full\n");
+            if (PTE_present(head1, newPTE)) {
 
-                struct PTE *first_p1 = TAILQ_FIRST(head1);
-                TAILQ_REMOVE(head1, first_p1, page_table);
-                p1_list_size--;
+            } else if (PTE_present(cleanhead, newPTE)) {
 
-                if (first_p1->dirty == 1) {
-                    if (dirty_list_size == dirty_list_capacity) {
-                        ++disk_writes_ctr;
+            } else if (PTE_present(dirtyhead, newPTE)) {
 
-                        struct PTE *first_dirty = TAILQ_FIRST(dirtyhead);
+            } else {
+                if (p1_list_size == RSS_1) {
+                    if (running_mode == DEBUG) printf("P1 list is full\n");
 
-                        TAILQ_REMOVE(dirtyhead, first_dirty, page_table);
-                        TAILQ_INSERT_TAIL(dirtyhead, first_p1, page_table);
+                    struct PTE *first_p1 = TAILQ_FIRST(head1);
+                    TAILQ_REMOVE(head1, first_p1, page_table);
+                    p1_list_size--;
 
-                        free(first_dirty);
+                    if (first_p1->dirty == 1) {
+                        if (dirty_list_size == dirty_list_capacity) {
+                            ++disk_writes_ctr;
+
+                            struct PTE *first_dirty = TAILQ_FIRST(dirtyhead);
+
+                            TAILQ_REMOVE(dirtyhead, first_dirty, page_table);
+                            TAILQ_INSERT_TAIL(dirtyhead, first_p1, page_table);
+
+                            free(first_dirty);
+                        } else {
+                            TAILQ_INSERT_TAIL(dirtyhead, first_p1, page_table);
+                            ++dirty_list_size;
+                        }
                     } else {
-                        TAILQ_INSERT_TAIL(dirtyhead, first_p1, page_table);
-                        ++dirty_list_size;
+                        if (clean_list_size == clean_list_capacity) {
+                            ++disk_writes_ctr;
+
+                            struct PTE *first_clean = TAILQ_FIRST(cleanhead);
+
+                            TAILQ_REMOVE(cleanhead, first_clean, page_table);
+                            TAILQ_INSERT_TAIL(cleanhead, first_p1, page_table);
+
+                            free(first_clean);
+                        } else {
+                            TAILQ_INSERT_TAIL(cleanhead, first_p1, page_table);
+                            ++clean_list_size;
+                        }
                     }
-                } else {
-                    if (clean_list_size == clean_list_capacity) {
-                        ++disk_writes_ctr;
-
-                        struct PTE *first_clean = TAILQ_FIRST(cleanhead);
-
-                        TAILQ_REMOVE(cleanhead, first_clean, page_table);
-                        TAILQ_INSERT_TAIL(cleanhead, first_p1, page_table);
-
-                        free(first_clean);
-                    } else {
-                        TAILQ_INSERT_TAIL(cleanhead, first_p1, page_table);
-                        ++clean_list_size;
-                    }
-                }
-            } 
-            TAILQ_INSERT_TAIL(head1, newPTE, page_table);
-            ++p1_list_size;
-        } else {
-            if (p2_list_size == RSS_2) {
-                if (running_mode == DEBUG) printf("P2 list is full\n");
-                
-                struct PTE *first_p2 = TAILQ_FIRST(head2);
-                TAILQ_REMOVE(head2, first_p2, page_table);
-                p2_list_size--;
-
-                if (first_p2->dirty == 1) {
-                    if (dirty_list_size == dirty_list_capacity) {
-                        ++disk_writes_ctr;
-
-                        struct PTE *first_dirty = TAILQ_FIRST(dirtyhead);
-
-                        TAILQ_REMOVE(dirtyhead, first_dirty, page_table);
-                        TAILQ_INSERT_TAIL(dirtyhead, first_p2, page_table);
-
-                        free(first_dirty);
-                    } else {
-                        TAILQ_INSERT_TAIL(dirtyhead, first_p2, page_table);
-                        ++dirty_list_size;
-                    }
-                } else {
-                    if (clean_list_size == clean_list_capacity) {
-                        ++disk_writes_ctr;
-
-                        struct PTE *first_clean = TAILQ_FIRST(cleanhead);
-
-                        TAILQ_REMOVE(cleanhead, first_clean, page_table);
-                        TAILQ_INSERT_TAIL(cleanhead, first_p2, page_table);
-
-                        free(first_clean);
-                    } else {
-                        TAILQ_INSERT_TAIL(cleanhead, first_p2, page_table);
-                        ++clean_list_size;
-                    }
-                }
+                } 
+                TAILQ_INSERT_TAIL(head1, newPTE, page_table);
+                ++p1_list_size;
             }
-            TAILQ_INSERT_TAIL(head2, newPTE, page_table);
-            ++p2_list_size;
+        } else {
+            if (PTE_present(head1, newPTE)) {
+
+            } else if (PTE_present(cleanhead, newPTE)) {
+
+            } else if (PTE_present(dirtyhead, newPTE)) {
+
+            } else {
+                if (p2_list_size == RSS_2) {
+                    if (running_mode == DEBUG) printf("P2 list is full\n");
+                    
+                    struct PTE *first_p2 = TAILQ_FIRST(head2);
+                    TAILQ_REMOVE(head2, first_p2, page_table);
+                    p2_list_size--;
+
+                    if (first_p2->dirty == 1) {
+                        if (dirty_list_size == dirty_list_capacity) {
+                            ++disk_writes_ctr;
+
+                            struct PTE *first_dirty = TAILQ_FIRST(dirtyhead);
+
+                            TAILQ_REMOVE(dirtyhead, first_dirty, page_table);
+                            TAILQ_INSERT_TAIL(dirtyhead, first_p2, page_table);
+
+                            free(first_dirty);
+                        } else {
+                            TAILQ_INSERT_TAIL(dirtyhead, first_p2, page_table);
+                            ++dirty_list_size;
+                        }
+                    } else {
+                        if (clean_list_size == clean_list_capacity) {
+                            ++disk_writes_ctr;
+
+                            struct PTE *first_clean = TAILQ_FIRST(cleanhead);
+
+                            TAILQ_REMOVE(cleanhead, first_clean, page_table);
+                            TAILQ_INSERT_TAIL(cleanhead, first_p2, page_table);
+
+                            free(first_clean);
+                        } else {
+                            TAILQ_INSERT_TAIL(cleanhead, first_p2, page_table);
+                            ++clean_list_size;
+                        }
+                    }
+                }
+                TAILQ_INSERT_TAIL(head2, newPTE, page_table);
+                ++p2_list_size;
+            }
         }
 }
 void PTE_reclaim(head_t *global, head_t *process, PTE *entry){
