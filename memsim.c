@@ -49,7 +49,7 @@ enum mode_types running_mode;
 
 void lru(head_t head, struct PTE *newPTE);
 void fifo(head_t head, struct PTE *newPTE);
-void vms(head_t1 *head1, head_t2 *head2, head_cn  PTE *entry);
+void vms(head_t1 *head1, head_t2 *head2, head_cn *cleanhead, head_dt *dirtyhead, PTE *newPTE);
 void replace_PTE(head_t *head, PTE *victim, PTE *entry);
 void print_dequeue(head_t *head);
 PTE *PTE_present(head_t *head, PTE *entry); // maybe return pointer to entry for use in replace PTE
@@ -135,13 +135,6 @@ int main(int argc, char *argv[]) {
         if (op_type == 'W') // TODO: This should occur when the victim page had a write operation and was dirty
             newPTE->dirty = 1;
 
-        unsigned first_digit = virtual_addr / 268435456;
-        if (first_digit == 3) {
-            newPTE->PID = 1;
-        } else {
-            newPTE->PID = 2;
-        }
-
 
 
 
@@ -169,7 +162,6 @@ int main(int argc, char *argv[]) {
                 queue_size++;
             } else if (replace_with == VMS) {
                 vms(&head1, &head2, &head_clean, &head_dirty, newPTE);
-                
             } else {
                 switch (replace_with) {
                     case LRU:
@@ -249,8 +241,44 @@ void fifo(head_t head, struct PTE *newPTE){
     queue_size++;
 }
 
-void vms(head_t1 *head1, head_t2 *head2, head_cn  PTE *entry) {
-    if (p1_list_size)
+void vms(head_t1 *head1, head_t2 *head2, head_cn *cleanhead, head_dt *dirtyhead, PTE *newPTE) {
+        unsigned first_digit = newPTE->virtual_page_number / 268435456;
+        if (first_digit == 3) {
+            newPTE->PID = 1;
+        } else {
+            newPTE->PID = 2;
+        }
+
+        if (newPTE->PID == 1) {
+            if (p1_list_size == RSS_1) {
+                struct PTE *first = TAILQ_FIRST(head1);
+                TAILQ_REMOVE(head1, first,  page_table);
+
+                if (first->dirty == 1) {
+                    TAILQ_INSERT_TAIL(dirtyhead, first, page_table);
+                } else {
+                    TAILQ_INSERT_TAIL(cleanhead, first, page_table);
+                }
+                    
+                TAILQ_INSERT_TAIL(head1, newPTE, page_table);
+            } else {
+                TAILQ_INSERT_TAIL(head1, newPTE, page_table);
+            }
+        } else {
+            if (p2_list_size == RSS2) {
+                struct PTE *first = TAILQ_FIRST(head1);
+                TAILQ_REMOVE(head1, first,  page_table);
+
+                if (first->dirty == 1) {
+                    TAILQ_INSERT_TAIL(dirtyhead, first, page_table);
+                } else {
+                    TAILQ_INSERT_TAIL(cleanhead, first, page_table);
+                }
+                    
+                TAILQ_INSERT_TAIL(head1, newPTE, page_table);
+
+            }
+        }
     /*
     if (entry->PID == 1) {
         p1_list_size++;
