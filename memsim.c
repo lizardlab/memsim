@@ -38,10 +38,10 @@ typedef struct PTE {
     TAILQ_ENTRY(PTE) page_table;
 } PTE;
 typedef TAILQ_HEAD(tailhead, PTE) head_t;
-typedef TAILQ_HEAD(p1head, PTE) head_t1;
+/* typedef TAILQ_HEAD(p1head, PTE) head_t1;
 typedef TAILQ_HEAD(p2head, PTE) head_t2;
 typedef TAILQ_HEAD(cleanhead, PTE) head_cn;
-typedef TAILQ_HEAD(dirtyhead, PTE) head_dt;
+typedef TAILQ_HEAD(dirtyhead, PTE) head_dt; */
 
 enum algo_types{LRU, FIFO, VMS};
 enum mode_types{QUIET, DEBUG};
@@ -49,7 +49,7 @@ enum mode_types running_mode;
 
 void lru(head_t head, struct PTE *newPTE);
 void fifo(head_t head, struct PTE *newPTE);
-void vms(head_t1 *head1, head_t2 *head2, head_cn *cleanhead, head_dt *dirtyhead, PTE *newPTE);
+void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE *newPTE);
 void replace_PTE(head_t *head, PTE *victim, PTE *entry);
 void print_dequeue(head_t *head);
 PTE *PTE_present(head_t *head, PTE *entry); // maybe return pointer to entry for use in replace PTE
@@ -111,10 +111,10 @@ int main(int argc, char *argv[]) {
     unsigned virtual_addr;
     char op_type;
     head_t head;
-    head_t1 head1;
-    head_t2 head2;
-    head_dt head_dirty;
-    head_cn head_clean;
+    head_t head1;
+    head_t head2;
+    head_t head_dirty;
+    head_t head_clean;
 
     TAILQ_INIT(&head);
     TAILQ_INIT(&head1);
@@ -241,7 +241,7 @@ void fifo(head_t head, struct PTE *newPTE){
     queue_size++;
 }
 
-void vms(head_t1 *head1, head_t2 *head2, head_cn *cleanhead, head_dt *dirtyhead, PTE *newPTE) {
+void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE *newPTE) {
         unsigned first_digit = newPTE->virtual_page_number / 268435456;
         if (first_digit == 3) {
             newPTE->PID = 1;
@@ -290,6 +290,11 @@ void vms(head_t1 *head1, head_t2 *head2, head_cn *cleanhead, head_dt *dirtyhead,
                 p2_list_size++;
             }
         }
+}
+PTE *PTE_reclaim(head_t *head, PTE *entry){
+    if(PTE_present(head, entry) != NULL){
+
+    }
 }
 
 PTE *PTE_present(head_t *head, PTE *entry) {
