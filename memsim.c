@@ -25,13 +25,6 @@ typedef struct PTE {
 } PTE;
 typedef TAILQ_HEAD(tailhead, PTE) head_t;
 
-/* typedef struct dequeue {
-    PTE *front;
-    PTE *rear;
-    int size;
-    int capacity;
-} dequeue; */
-
 enum algo_types{LRU, FIFO, VMS};
 enum mode_types{QUIET, DEBUG};
 enum mode_types running_mode;
@@ -108,6 +101,7 @@ int main(int argc, char *argv[]) {
         if (op_type == 'W') // TODO: This should occur when the victim page had a write operation and was dirty
             newPTE->dirty = 1;
         newPTE->virtual_page_number = virtual_addr / PAGE_SIZE;
+        newPTE->time_accessed = get_access_time();
         if (running_mode == DEBUG) {
             printf("Reading VA: %x %c\n", virtual_addr, op_type);
             printf("Reading VPN: %x\n", newPTE->virtual_page_number);
@@ -194,84 +188,6 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-/* void init_dequeue(dequeue *dq, int max_size) {
-    dq->front = NULL;
-    dq->rear = NULL;
-    dq->size = 0;
-    dq->capacity = max_size;
-}
-
-int dequeue_empty(dequeue *dq) {
-    return dq->size == 0;
-}
-
-int dequeue_full(dequeue *dq) {
-    return dq->size == dq->capacity;
-}
-
-int insert_front_dequeue(dequeue *dq, PTE entry) {
-    if (dq->size == dq->capacity)
-        return -1;
-
-    PTE *newPTE = (PTE*) malloc(sizeof(struct PTE));
-    newPTE->nextPTE = NULL;
-    newPTE->prevPTE = NULL;
-
-    if (newPTE != NULL) {
-        newPTE->time_accessed = get_access_time(); // DELETE ME
-        newPTE->virtual_page_number = entry.virtual_page_number;
-
-        if (dq->front == NULL) {
-            dq->front = newPTE;
-            dq->rear = newPTE;
-        }
-        else {
-            newPTE->prevPTE = dq->front;
-            dq->front->nextPTE = newPTE;
-            dq->front = newPTE;
-        }
-    } 
-    else {
-        return -1;
-    }
-
-    dq->size++;
-
-    return dq->size;
-}
-
-int insert_rear_dequeue(dequeue *dq, PTE entry) {
-    if (dq->size == dq->capacity)
-        return -1;
-
-    PTE *newPTE = (PTE*) malloc(sizeof(struct PTE));
-    newPTE->nextPTE = NULL;
-    newPTE->prevPTE = NULL;
-
-
-    if (newPTE != NULL) {
-        newPTE->time_accessed = get_access_time(); // DELETE ME
-        newPTE->virtual_page_number = entry.virtual_page_number;
-
-        if (dq->rear == NULL) {    
-            dq->rear = newPTE;
-            dq->front = newPTE;
-        }
-        else {
-            newPTE->nextPTE = dq->rear;
-            dq->rear->prevPTE = newPTE;
-            dq->rear = newPTE;
-        }
-    }
-    else {
-        return -1;
-    }
-
-    dq->size++;
-
-    return dq->size;
-} */
-
 PTE *PTE_present(head_t *head, PTE *entry) {
     if(running_mode == DEBUG) printf("Inside PTE present\n");
     struct PTE *comp;
@@ -292,43 +208,13 @@ PTE *replace_PTE(head_t *head, PTE *victim, PTE *entry) {
     TAILQ_REMOVE(head, store, page_table);
 }
 
-/* 
-int remove_front_dequeue(dequeue *dq) {
-    PTE *old_front = dq->front;
-
-    if (dq->front != NULL) {
-        if (dq->front->prevPTE != NULL) {
-            dq->front->prevPTE->nextPTE = NULL;
-            dq->front = dq->front->prevPTE;
-        }
-        free(old_front);
-    }
-
-    dq->size--;
-    return dq->size;
-}
-int remove_rear_dequeue(dequeue *dq) {
-    PTE *old_rear = dq->rear;
-
-    if (dq->rear != NULL) {
-        if (dq->rear->nextPTE != NULL) {
-            dq->rear->nextPTE->prevPTE = NULL;
-            dq->rear = dq->rear->nextPTE;
-        }
-        free(old_rear);
-    }
-
-    dq->size--;
-    return dq->size;
-}
-*/
 void print_dequeue(head_t *head) {
     if (TAILQ_EMPTY(head)) {
         printf("The dequeue is empty.\n");
     }
     struct PTE *page;
     TAILQ_FOREACH(page, head, page_table){
-        printf("%d %x\n", page->time_accessed, page->virtual_page_number);
+        printf("PTE: %d, VA: %x\n", page->time_accessed, page->virtual_page_number);
     }
 }
 PTE *find_LRU(head_t *head) {
