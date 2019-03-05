@@ -29,7 +29,7 @@ enum algo_types{LRU, FIFO, VMS};
 enum mode_types{QUIET, DEBUG};
 enum mode_types running_mode;
 
-PTE *replace_PTE(head_t *head, PTE *victim, PTE *entry);
+void replace_PTE(head_t *head, PTE *victim, PTE *entry);
 void print_dequeue(head_t *head);
 PTE *PTE_present(head_t *head, PTE *entry); // maybe return pointer to entry for use in replace PTE
 PTE *find_LRU(head_t *head);
@@ -87,7 +87,8 @@ int main(int argc, char *argv[]) {
     // Storage for variables on each line of the trace file
     unsigned virtual_addr;
     char op_type;
-    TAILQ_HEAD(tailhead, PTE) head = TAILQ_HEAD_INITIALIZER(head);
+    head_t head;
+    //TAILQ_HEAD(tailhead, PTE) head = TAILQ_HEAD_INITIALIZER(head);
     TAILQ_INIT(&head);
 
     int events_ctr = 0;
@@ -173,7 +174,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    printf("\n");
     printf("total memory frames: %d\n", queue_capacity);
     printf("events in trace: %d\n", events_ctr);
     printf("total disk reads: %d\n", disk_reads_ctr);
@@ -182,7 +182,6 @@ int main(int argc, char *argv[]) {
 
     print_dequeue(&head);
 
-    printf("\n\n\n");
     // Closes trace file
     fclose(trace_file);
     return 0;
@@ -199,7 +198,7 @@ PTE *PTE_present(head_t *head, PTE *entry) {
     return NULL;
 }
 
-PTE *replace_PTE(head_t *head, PTE *victim, PTE *entry) {
+void replace_PTE(head_t *head, PTE *victim, PTE *entry) {
     if(running_mode == DEBUG) printf("Replacing...\n");
     struct PTE *store;
     store = victim;
