@@ -157,8 +157,6 @@ int main(int argc, char *argv[]) {
             if (!dequeue_full() && replace_with != VMS) {
                 TAILQ_INSERT_TAIL(&head, newPTE, page_table);
                 queue_size++;
-            } else if (replace_with == VMS) {
-                vms(&head1, &head2, &head_clean, &head_dirty, newPTE);
             } else {
                 switch (replace_with) {
                     case LRU:
@@ -171,6 +169,7 @@ int main(int argc, char *argv[]) {
                         if (running_mode == DEBUG) {
                             printf("VMS replacement\n");
                         }
+                        vms(&head1, &head2, &head_clean, &head_dirty, newPTE);
                         break;
                 }
             }
