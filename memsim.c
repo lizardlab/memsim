@@ -225,7 +225,7 @@ void fifo(head_t head, struct PTE *newPTE){
         printf("Replacing VA: %x\n", TAILQ_FIRST(&head)->virtual_page_number);
     }
     
-    if (!TAILQ_EMPTY(&head)) {
+    if (dequeue_full()) { // should be if full
         struct PTE *first = TAILQ_FIRST(&head);
 
         if (first->dirty == 1)
