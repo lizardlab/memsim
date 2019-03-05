@@ -11,6 +11,10 @@ int queue_capacity = 0;
 int global_time_accessed = 0;
 int disk_writes_ctr = 0;
 int disk_reads_ctr = 0;
+int events_ctr = 0;
+int hits_ctr = 0;
+int fault_ctr = 0;
+
 
 int p1_list_size = 0;
 int p2_list_size = 0;
@@ -64,6 +68,7 @@ int main(int argc, char *argv[]) {
         printf("Invalid number of frames.\n");
         return -1;
     }
+
     queue_capacity = nframes;
     RSS_1 = nframes/2;
     RSS_2 = nframes/2;
@@ -120,11 +125,6 @@ int main(int argc, char *argv[]) {
     TAILQ_INIT(&head2);
     TAILQ_INIT(&head_dirty);
     TAILQ_INIT(&head_clean);
-
-
-    int events_ctr = 0;
-    int hits_ctr = 0;
-    int fault_ctr = 0;
 
     while(fscanf(trace_file, "%x %c", &virtual_addr, &op_type) != EOF){
         ++events_ctr;
@@ -253,12 +253,15 @@ void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE
         PTE *foundPTE = NULL;
         if (newPTE->PID == 1) {
             if (foundPTE = PTE_present(head1, newPTE) != NULL) {
+                ++hits_ctr;
 
             } else if (foundPTE = PTE_present(cleanhead, newPTE)) {
 
             } else if (foundPTE = PTE_present(dirtyhead, newPTE)) {
 
             } else {
+                ++fault_ctr;
+
                 if (p1_list_size == RSS_1) {
                     if (running_mode == DEBUG) printf("P1 list is full\n");
 
@@ -301,12 +304,15 @@ void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE
             }
         } else {
             if (foundPTE = PTE_present(head1, newPTE) != NULL) {
+                ++hits_ctr;
 
             } else if (foundPTE = PTE_present(cleanhead, newPTE) != NULL) {
 
             } else if (foundPTE = PTE_present(dirtyhead, newPTE) != NULL) {
 
             } else {
+                ++fault_ctr;
+
                 if (p2_list_size == RSS_2) {
                     if (running_mode == DEBUG) printf("P2 list is full\n");
                     
