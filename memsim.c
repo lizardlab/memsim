@@ -2,13 +2,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/queue.h>
+#include <limits.h>
 
 #define PAGE_SIZE 4096
+
 int queue_size = 0;
 int queue_capacity = 0;
 int global_time_accessed = 0;
 int disk_writes_ctr = 0;
 int disk_reads_ctr = 0;
+
+int p1_list_size = 0;
+int p2_list_size = 0;
+int RSS_1 = 0;
+int RSS_2 = 0;
+int clean_list_size = 0;
+int dirty_list_size = 0;
+int clean_list_capacity = 0;
+int dirty_list_capacity = 0;
 
 int get_access_time() {
     return ++global_time_accessed;
@@ -22,10 +33,15 @@ typedef struct PTE {
     int present;
     int dirty;
     int time_accessed;
+    int PID;
 
     TAILQ_ENTRY(PTE) page_table;
 } PTE;
 typedef TAILQ_HEAD(tailhead, PTE) head_t;
+typedef TAILQ_HEAD(p1head, PTE) head_t1;
+typedef TAILQ_HEAD(p2head, PTE) head_t2;
+typedef TAILQ_HEAD(cleanhead, PTE) head_cn;
+typedef TAILQ_HEAD(dirtyhead, PTE) head_dt;
 
 enum algo_types{LRU, FIFO, VMS};
 enum mode_types{QUIET, DEBUG};
@@ -33,6 +49,7 @@ enum mode_types running_mode;
 
 void lru(head_t head, struct PTE *newPTE);
 void fifo(head_t head, struct PTE *newPTE);
+void vms(head_t1 *head1, head_t2 *head2, head_cn  PTE *entry);
 void replace_PTE(head_t *head, PTE *victim, PTE *entry);
 void print_dequeue(head_t *head);
 PTE *PTE_present(head_t *head, PTE *entry); // maybe return pointer to entry for use in replace PTE
@@ -51,6 +68,8 @@ int main(int argc, char *argv[]) {
         return -1;
     }
     queue_capacity = nframes;
+    RSS_1 = nframes/2;
+    RSS_2 = nframes/2;
 
     enum algo_types replace_with;
 
@@ -92,8 +111,17 @@ int main(int argc, char *argv[]) {
     unsigned virtual_addr;
     char op_type;
     head_t head;
-    //TAILQ_HEAD(tailhead, PTE) head = TAILQ_HEAD_INITIALIZER(head);
+    head_t1 head1;
+    head_t2 head2;
+    head_dt head_dirty;
+    head_cn head_clean;
+
     TAILQ_INIT(&head);
+    TAILQ_INIT(&head1);
+    TAILQ_INIT(&head2);
+    TAILQ_INIT(&head_dirty);
+    TAILQ_INIT(&head_clean);
+
 
     int events_ctr = 0;
     int hits_ctr = 0;
@@ -101,58 +129,75 @@ int main(int argc, char *argv[]) {
 
     while(fscanf(trace_file, "%x %c", &virtual_addr, &op_type) != EOF){
         events_ctr++;
+
         PTE *newPTE = malloc(sizeof(PTE));
+
         if (op_type == 'W') // TODO: This should occur when the victim page had a write operation and was dirty
             newPTE->dirty = 1;
+
+        unsigned first_digit = virtual_addr / 268435456;
+        if (first_digit == 3) {
+            newPTE->PID = 1;
+        } else {
+            newPTE->PID = 2;
+        }
+
+
+
+
         newPTE->virtual_page_number = virtual_addr / PAGE_SIZE;
         newPTE->time_accessed = get_access_time();
+
+
         if (running_mode == DEBUG) {
             printf("Reading VA: %x %c\n", virtual_addr, op_type);
             printf("Reading VPN: %x\n", newPTE->virtual_page_number);
         }
 
-//        if (++events_ctr < 30) { // DELETE ME
-        if (1 == 1) { // DELETE ME
-            newPTE->virtual_page_number = virtual_addr;
-            PTE *pres = PTE_present(&head, newPTE);
-            if (pres == NULL) {
-                ++fault_ctr;
-                if (op_type == 'R') // TODO: This should occur in case of page fault
-                    ++disk_reads_ctr;
-                if (running_mode == DEBUG)
-                    printf("faults: %d\n", fault_ctr);
-                if (!dequeue_full()) {
-                    TAILQ_INSERT_TAIL(&head, newPTE, page_table);
-                    queue_size++;
-                } else {
-                    switch (replace_with) {
-                        case LRU:
-                            lru(head, newPTE);
-                            break;
-                        case FIFO:
-                            fifo(head, newPTE);
-                            break;
-                        case VMS:
-                            if (running_mode == DEBUG) {
-                                printf("VMS replacement\n");
-                            }
-                            break;
-                    }
-                }
+        PTE *pres = PTE_present(&head, newPTE);
+
+        if (pres == NULL) {
+            ++fault_ctr;
+            if (running_mode == DEBUG)
+                printf("faults: %d\n", fault_ctr);
+
+            if (op_type == 'R')
+                ++disk_reads_ctr;
+
+            if (!dequeue_full() && replace_with != VMS) {
+                TAILQ_INSERT_TAIL(&head, newPTE, page_table);
+                queue_size++;
+            } else if (replace_with == VMS) {
+                vms(&head1, &head2, &head_clean, &head_dirty, newPTE);
+                
             } else {
-                ++hits_ctr;
-                if (op_type == 'W')
-                    pres->dirty = 1;
-                if (replace_with == LRU) {
-                    pres->time_accessed = get_access_time();
+                switch (replace_with) {
+                    case LRU:
+                        lru(head, newPTE);
+                        break;
+                    case FIFO:
+                        fifo(head, newPTE);
+                        break;
+                    case VMS:
+                        if (running_mode == DEBUG) {
+                            printf("VMS replacement\n");
+                        }
+                        break;
                 }
             }
-            if (running_mode == DEBUG)
-                printf("hits: %d\n", hits_ctr);
+        } else {
+            ++hits_ctr;
+
+            if (op_type == 'W')
+                pres->dirty = 1;
+
+            if (replace_with == LRU) {
+                pres->time_accessed = get_access_time();
+            }
         }
-        else {
-            break;
-        }
+
+        if (running_mode == DEBUG)
+            printf("hits: %d\n", hits_ctr);
     }
 
     printf("total memory frames: %d\n", queue_capacity);
@@ -167,6 +212,7 @@ int main(int argc, char *argv[]) {
     fclose(trace_file);
     return 0;
 }
+
 void lru(head_t head, struct PTE *newPTE){
     if (running_mode == DEBUG) {
         printf("LRU replacement\n");
@@ -175,68 +221,91 @@ void lru(head_t head, struct PTE *newPTE){
         printf("VA %x replacing VA %x\n", newPTE->virtual_page_number, find_LRU(&head)->virtual_page_number);
     }
 
-    if (find_LRU(&head)->dirty == 1)
+    struct PTE *lruPTE = find_LRU(&head);
+
+    if (lruPTE->dirty == 1)
         ++disk_writes_ctr;
-    replace_PTE(&head, find_LRU(&head), newPTE);
+
+    replace_PTE(&head, lruPTE, newPTE);
 }
+
 void fifo(head_t head, struct PTE *newPTE){
     if (running_mode == DEBUG) {
         printf("FIFO replacement\n");
         printf("Replacing VA: %x\n", TAILQ_FIRST(&head)->virtual_page_number);
     }
     
-    
     if (!TAILQ_EMPTY(&head)) {
         struct PTE *first = TAILQ_FIRST(&head);
-        if (first->dirty) { // TODO: This should occur when the victim page had a write operation and was dirty
+
+        if (first->dirty == 1)
             ++disk_writes_ctr;
-        }
+
         TAILQ_REMOVE(&head, first, page_table);
         queue_size--;
     }
+
     TAILQ_INSERT_TAIL(&head, newPTE, page_table);
     queue_size++;
 }
 
+void vms(head_t1 *head1, head_t2 *head2, head_cn  PTE *entry) {
+    if (p1_list_size)
+    /*
+    if (entry->PID == 1) {
+        p1_list_size++;
+    }
+    else
+    {
+        p2_list_size++;        
+    }
+   */ 
+
+}
+
 PTE *PTE_present(head_t *head, PTE *entry) {
     if(running_mode == DEBUG) printf("Inside PTE present\n");
-    struct PTE *comp;
-    TAILQ_FOREACH(comp, head, page_table){
-        if(comp->virtual_page_number == entry->virtual_page_number){
-            return comp;
-        }
+
+    struct PTE *page;
+    TAILQ_FOREACH(page, head, page_table){
+        if(page->virtual_page_number == entry->virtual_page_number)
+            return page;
     }
     return NULL;
 }
 
 void replace_PTE(head_t *head, PTE *victim, PTE *entry) {
     if(running_mode == DEBUG) printf("Replacing...\n");
-    struct PTE *store;
-    store = victim;
+
     entry = malloc(sizeof(PTE));
+
     TAILQ_INSERT_AFTER(head, victim, entry, page_table);
-    TAILQ_REMOVE(head, store, page_table);
+    TAILQ_REMOVE(head, victim, page_table);
 }
 
 void print_dequeue(head_t *head) {
     if (TAILQ_EMPTY(head)) {
         printf("The dequeue is empty.\n");
     }
+
     struct PTE *page;
     TAILQ_FOREACH(page, head, page_table){
         printf("PTE: %d, VA: %x\n", page->time_accessed, page->virtual_page_number);
     }
 }
+
 PTE *find_LRU(head_t *head) {
     if(running_mode == DEBUG) printf("Entered find LRU\n");
+
     if (TAILQ_EMPTY(head)){
         // Cannot find LRU of empty dequeue
         if(running_mode == DEBUG) printf("Queue is empty in find_LRU\n");
         return NULL;
     }
+
     struct PTE *lruPTE;
     struct PTE *page;
-    int min = TAILQ_FIRST(head)->time_accessed;
+    int min = INT_MAX;
     TAILQ_FOREACH(page, head, page_table){
         if(page->time_accessed < min){
             lruPTE = page;
@@ -245,6 +314,7 @@ PTE *find_LRU(head_t *head) {
     }
     return lruPTE;
 }
+
 int dequeue_full(){
     return queue_size == queue_capacity;
 }
