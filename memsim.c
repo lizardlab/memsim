@@ -307,9 +307,11 @@ PTE *PTE_present(head_t *head, PTE *entry) {
     if(running_mode == DEBUG) printf("Inside PTE present\n");
 
     struct PTE *page;
-    TAILQ_FOREACH(page, head, page_table){
+    page = TAILQ_NEXT(TAILQ_FIRST(head), page_table);
+    while(page != NULL){
         if(page->virtual_page_number == entry->virtual_page_number)
             return page;
+        page = TAILQ_NEXT(page, page_table);
     }
     return NULL;
 }
