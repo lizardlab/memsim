@@ -228,18 +228,26 @@ void fifo(head_t head, struct PTE *newPTE){
         printf("Replacing VA: %x\n", TAILQ_FIRST(&head)->virtual_page_number);
     }
     
-    if (dequeue_full()) {
-        struct PTE *first = TAILQ_FIRST(&head);
+    PTE *pres = PTE_present(&head, newPTE);
 
-        if (first->dirty == 1)
-            ++disk_writes_ctr;
+    if (pres == NULL) {
+        if (dequeue_full()) {
+            struct PTE *first = TAILQ_FIRST(&head);
 
-        TAILQ_REMOVE(&head, first, page_table);
-        queue_size--;
+            if (first->dirty == 1)
+                ++disk_writes_ctr;
+
+            TAILQ_REMOVE(&head, first, page_table);
+            queue_size--;
+        }
+        TAILQ_INSERT_TAIL(&head, newPTE, page_table);
+        ++queue_size;
+    } else {
+        ++hits_ctr;
+
+        if (newPTE->dirty == 1)
+            pres->dirty = 1;
     }
-
-    TAILQ_INSERT_TAIL(&head, newPTE, page_table);
-    ++queue_size;
 }
 
 void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE *newPTE) {
