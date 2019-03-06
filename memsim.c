@@ -143,7 +143,12 @@ int main(int argc, char *argv[]) {
             printf("Reading VPN: %x\n", newPTE->virtual_page_number);
         }
 
-        PTE *pres = PTE_present(&head, newPTE);
+        if (replace_with == VMS) {
+            vms(&head1, &head2, &head_clean, &head_dirty, newPTE);
+            continue;
+        } else {
+            PTE *pres = PTE_present(&head, newPTE);
+        }
 
         if (pres == NULL) {
             ++fault_ctr;
@@ -168,7 +173,6 @@ int main(int argc, char *argv[]) {
                         if (running_mode == DEBUG) {
                             printf("VMS replacement\n");
                         }
-                        vms(&head1, &head2, &head_clean, &head_dirty, newPTE);
                         break;
                 }
             }
