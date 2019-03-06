@@ -252,10 +252,10 @@ void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE
 
         PTE *foundPTE = NULL;
         if (newPTE->PID == 1) {
-            if (foundPTE = PTE_present(head1, newPTE) != NULL) {
+            if ( (foundPTE = PTE_present(head1, newPTE)) != NULL) {
                 ++hits_ctr;
 
-            } else if (foundPTE = PTE_present(cleanhead, newPTE)) {
+            } else if ( (foundPTE = PTE_present(cleanhead, newPTE)) != NULL) {
                 TAILQ_REMOVE(cleanhead, foundPTE, page_table);
 
                 struct PTE *first_p1 = TAILQ_FIRST(head1);
@@ -264,7 +264,7 @@ void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE
                 TAILQ_INSERT_TAIL(head1, foundPTE, page_table);
 
                 free(first_p1);
-            } else if (foundPTE = PTE_present(dirtyhead, newPTE)) {
+            } else if ( (foundPTE = PTE_present(dirtyhead, newPTE)) != NULL) {
                 TAILQ_REMOVE(dirtyhead, foundPTE, page_table);
 
                 struct PTE *first_p1 = TAILQ_FIRST(head1);
@@ -315,12 +315,19 @@ void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE
                 ++p1_list_size;
             }
         } else {
-            if (foundPTE = PTE_present(head1, newPTE) != NULL) {
+            if ( (foundPTE = PTE_present(head1, newPTE)) != NULL) {
                 ++hits_ctr;
 
-            } else if (foundPTE = PTE_present(cleanhead, newPTE) != NULL) {
+            } else if ( (foundPTE = PTE_present(cleanhead, newPTE)) != NULL) {
+                TAILQ_REMOVE(cleanhead, foundPTE, page_table);
 
-            } else if (foundPTE = PTE_present(dirtyhead, newPTE) != NULL) {
+                struct PTE *first_p1 = TAILQ_FIRST(head1);
+                TAILQ_REMOVE(head1, first_p1, page_table);
+
+                TAILQ_INSERT_TAIL(head1, foundPTE, page_table);
+
+                free(first_p1);
+            } else if ( (foundPTE = PTE_present(dirtyhead, newPTE)) != NULL) {
 
             } else {
                 ++fault_ctr;
