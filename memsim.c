@@ -143,12 +143,22 @@ int main(int argc, char *argv[]) {
             printf("Reading VPN: %x\n", newPTE->virtual_page_number);
         }
 
+        if (!dequeue_full() && replace_with != VMS) {
+            TAILQ_INSERT_TAIL(&head, newPTE, page_table);
+            ++queue_size;
+            continue;
+        }
+
         if (replace_with == VMS) {
             vms(&head1, &head2, &head_clean, &head_dirty, newPTE);
             continue;
-        } else {
-            PTE *pres = PTE_present(&head, newPTE);
-        
+        } else if (replace_with == LRU) {
+            lru(head, newPTE);
+        } else if (replace_with == FIFO) {
+            fifo(head, newPTE);
+        }
+
+        PTE *pres = PTE_present(&head, newPTE);
 
         if (pres == NULL) {
             ++fault_ctr;
@@ -158,24 +168,7 @@ int main(int argc, char *argv[]) {
             if (op_type == 'R')
                 ++disk_reads_ctr;
 
-            if (!dequeue_full() && replace_with != VMS) {
-                TAILQ_INSERT_TAIL(&head, newPTE, page_table);
-                ++queue_size;
-            } else {
-                switch (replace_with) {
-                    case LRU:
-                        lru(head, newPTE);
-                        break;
-                    case FIFO:
-                        fifo(head, newPTE);
-                        break;
-                    case VMS:
-                        if (running_mode == DEBUG) {
-                            printf("VMS replacement\n");
-                        }
-                        break;
-                }
-            }
+
         } else {
             ++hits_ctr;
 
@@ -186,10 +179,6 @@ int main(int argc, char *argv[]) {
                 pres->time_accessed = get_access_time();
             }
         }
-        }
-
-        if (running_mode == DEBUG)
-            printf("hits: %d\n", hits_ctr);
     }
 
     printf("total memory frames: %d\n", queue_capacity);
