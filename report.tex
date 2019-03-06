@@ -26,21 +26,16 @@
 	
 	\begin{center}
 	\captionof{table}{Hit rate vs. cache size}
-	\begin{tabular}{l | r | r | r |}
-		 & \multicolumn{3}{| c |}{Hit Rate (\%)} \\
-		 \hline
-		Frames & FIFO & LRU  &  VMS \\ \hline
-		2 & 2.2 & 2.2 & 2.2 \\
-		4 & 1.5 & 1.5 & 1.5 \\
-		8 & 4.5 & 4.5 & 4.5 \\
-		16 & 3.4 & 3.4 & 3.4 \\
-		32 & 82.0 & 82.0 & 82.0 \\
-		64 & 65.0 & 65.0 & 65.0 \\
-		128 & 57.0 & 57.0 & 57.0 \\
-		256 & 72.0 & 72.0 & 72.0 \\
-		512 & 74.0 & 74.0 & 74.0 \\
-		1024 & 65.0 & 65.0 & 65.0 \\ \hline
-		Average & 99.8 & 99.8 & 99.8
+	\begin{tabular}{l | r }
+		Frames & FIFO Hit Rate (\%) \\ \hline
+		4 & 28.3898 \\
+		8 & 28.3903  \\
+		16 & 28.3909 \\
+		32 & 28.3925 \\
+		64 & 28.3966 \\
+		128 & 28.4032 \\
+		256 & 28.4212 \\ \hline
+		Average & 28.3977
 	\end{tabular}
 
 	\begin{tikzpicture}
@@ -49,9 +44,8 @@
 		xlabel={Page frames},
 		ylabel={Hit rate (\%)},
 		xmin=2, xmax=64,
-		ymin=0, ymax=100,
+		ymin=28, ymax=29,
 		xtick={2, 4, 8, 16, 32, 64},
-		ytick={10, 20, 30, 40, 50 , 60, 70, 80, 90},
 		legend pos=north west,
 		ymajorgrids=true,
 		grid style=dashed,
@@ -61,21 +55,9 @@
 		color=blue,
 	]
 	coordinates {
-		(0,23.1)(10,27.5)(20,32)(30,37.8)(40,44.6)(60,61.8)(80,83.8)(100,114)
+		(4, 28.3898) (8, 28.3903) (16, 28.3909) (32, 28.3925) (64, 28.3966) (128, 28.4032) (256, 28.4212)
 	};
-	\addplot[
-		color=red,
-	]
-	coordinates {
-		(0,23.1)(10,27.5)(20,32)(30,37.8)(40,44.6)(60,61.8)(80,83.8)(100,114)
-	};
-	\addplot[
-		color=green,
-	]
-	coordinates {
-		(0,23.1)(10,27.5)(20,32)(30,37.8)(40,44.6)(60,61.8)(80,83.8)(100,114)
-	};
-	\legend{FIFO, LRU, VMS}
+	\legend{FIFO}
 	
 	\end{axis}
 	\end{tikzpicture}

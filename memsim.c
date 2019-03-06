@@ -352,7 +352,7 @@ PTE *find_LRU(head_t *head) {
     page = TAILQ_FIRST(head);
     while(page != NULL){
         if(page->time_accessed < min){
-            memcpy(lruPTE, page, sizeof(PTE));
+            lruPTE = page;
             min = page->time_accessed;
         }
         page = TAILQ_NEXT(page, page_table);
