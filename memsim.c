@@ -256,7 +256,14 @@ void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE
                 ++hits_ctr;
 
             } else if (foundPTE = PTE_present(cleanhead, newPTE)) {
+                TAILQ_REMOVE(cleanhead, foundPTE, page_table);
 
+                struct PTE *first_p1 = TAILQ_FIRST(head1);
+                TAILQ_REMOVE(head1, first_p1, page_table);
+
+                TAILQ_INSERT_TAIL(head1, foundPTE, page_table);
+
+                free(first_p1);
             } else if (foundPTE = PTE_present(dirtyhead, newPTE)) {
 
             } else {
