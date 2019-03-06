@@ -246,24 +246,9 @@ void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE
             if ( (foundPTE = PTE_present(head1, newPTE)) != NULL) {
                 ++hits_ctr;
             } else if ( (foundPTE = PTE_present(cleanhead, newPTE)) != NULL) {
-                TAILQ_REMOVE(cleanhead, foundPTE, page_table);
-
-                if (!TAILQ_EMPTY(head1)) {
-                    struct PTE *first_p1 = TAILQ_FIRST(head1);
-                    TAILQ_REMOVE(head1, first_p1, page_table);
-//                free(first_p1);
-                }
-
-                TAILQ_INSERT_TAIL(head1, foundPTE, page_table);
+                PTE_reclaim(cleanhead, head1, foundPTE);
             } else if ( (foundPTE = PTE_present(dirtyhead, newPTE)) != NULL) {
-                TAILQ_REMOVE(dirtyhead, foundPTE, page_table);
-
-                if (!TAILQ_EMPTY(head1)) {
-                    struct PTE *first_p1 = TAILQ_FIRST(head1);
-                    TAILQ_REMOVE(head1, first_p1, page_table);
-                }
-
-                TAILQ_INSERT_TAIL(head1, foundPTE, page_table);
+                PTE_reclaim(dirtyhead, head1, foundPTE);
             } else {
                 ++fault_ctr;
 
