@@ -137,7 +137,6 @@ int main(int argc, char *argv[]) {
         newPTE->virtual_page_number = virtual_addr / PAGE_SIZE;
         newPTE->time_accessed = get_access_time();
 
-
         if (running_mode == DEBUG) {
             printf("Reading VA: %x %c\n", virtual_addr, op_type);
             printf("Reading VPN: %x\n", newPTE->virtual_page_number);
@@ -377,13 +376,8 @@ void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE
 }
 
 void PTE_reclaim(head_t *global, head_t *process, PTE *entry){
-    struct PTE *reclaimer = PTE_present(global, entry);
-    if(reclaimer != NULL){
+        TAILQ_REMOVE(global, entry, page_table);
         TAILQ_INSERT_TAIL(process, entry, page_table);
-    }
-    else{
-        TAILQ_INSERT_TAIL(global, entry, page_table);
-    }
 }
 
 PTE *PTE_present(head_t *head, PTE *entry) {
