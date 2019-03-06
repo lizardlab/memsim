@@ -186,6 +186,8 @@ void lru(head_t head, struct PTE *newPTE){
 
         struct PTE *lruPTE = find_LRU(&head);
 
+//        printf("value of dirty bit in find_LRU: %d for VPN %x\n", lruPTE->dirty, lruPTE->virtual_page_number);
+
         if (lruPTE->dirty == 1)
             ++disk_writes_ctr;
         replace_PTE(&head, lruPTE, newPTE);
@@ -348,8 +350,11 @@ PTE *find_LRU(head_t *head) {
         if(page->time_accessed < min){
             lruPTE = page;
             min = page->time_accessed;
+//            printf("page time accessed: %d\n", page->time_accessed);
+//            printf("value of dirty bit in find_LRU: %d for VPN %x, access_time = %d\n", lruPTE->dirty, lruPTE->virtual_page_number, lruPTE->time_accessed);
         }
     }
+    printf("lruPTE vpn is %d\n", lruPTE->virtual_page_number);
     return lruPTE;
 }
 
