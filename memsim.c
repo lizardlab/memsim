@@ -156,28 +156,6 @@ int main(int argc, char *argv[]) {
         } else if (replace_with == FIFO) {
             fifo(head, newPTE);
         }
-
-        PTE *pres = PTE_present(&head, newPTE);
-
-        if (pres == NULL) {
-            ++fault_ctr;
-            if (running_mode == DEBUG)
-                printf("faults: %d\n", fault_ctr);
-
-            if (op_type == 'R')
-                ++disk_reads_ctr;
-
-
-        } else {
-            ++hits_ctr;
-
-            if (op_type == 'W')
-                pres->dirty = 1;
-
-            if (replace_with == LRU) {
-                pres->time_accessed = get_access_time();
-            }
-        }
     }
 
     printf("total memory frames: %d\n", queue_capacity);
@@ -231,6 +209,9 @@ void fifo(head_t head, struct PTE *newPTE){
     PTE *pres = PTE_present(&head, newPTE);
 
     if (pres == NULL) {
+        ++fault_ctr;
+        ++disk_reads_ctr;
+
         if (dequeue_full()) {
             struct PTE *first = TAILQ_FIRST(&head);
 
