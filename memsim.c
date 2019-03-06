@@ -151,7 +151,6 @@ int main(int argc, char *argv[]) {
 
         if (replace_with == VMS) {
             vms(&head1, &head2, &head_clean, &head_dirty, newPTE);
-            continue;
         } else if (replace_with == LRU) {
             lru(head, newPTE);
         } else if (replace_with == FIFO) {
@@ -202,12 +201,18 @@ void lru(head_t head, struct PTE *newPTE){
         printf("VA %x replacing VA %x\n", newPTE->virtual_page_number, find_LRU(&head)->virtual_page_number);
     }
 
-    struct PTE *lruPTE = find_LRU(&head);
+    PTE *pres = PTE_present(&head, newPTE);
 
-    if (lruPTE->dirty == 1)
-        ++disk_writes_ctr;
+    if (pres == NULL) {
+        ++fault_ctr;
+        ++disk_reads_ctr;
 
+        struct PTE *lruPTE = find_LRU(&head);
+
+        if (lruPTE->dirty == 1)
+            ++disk_writes_ctr;
     replace_PTE(&head, lruPTE, newPTE);
+    }
 }
 
 void fifo(head_t head, struct PTE *newPTE){
