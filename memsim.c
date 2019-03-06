@@ -211,7 +211,14 @@ void lru(head_t head, struct PTE *newPTE){
 
         if (lruPTE->dirty == 1)
             ++disk_writes_ctr;
-    replace_PTE(&head, lruPTE, newPTE);
+        replace_PTE(&head, lruPTE, newPTE);
+    } else {
+        ++hits_ctr;
+
+        if (newPTE->dirty == 1)
+            pres->dirty = 1;
+
+        pres->time_accessed = get_access_time();
     }
 }
 
