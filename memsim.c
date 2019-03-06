@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
             continue;
         } else {
             PTE *pres = PTE_present(&head, newPTE);
-        }
+        
 
         if (pres == NULL) {
             ++fault_ctr;
@@ -185,6 +185,7 @@ int main(int argc, char *argv[]) {
             if (replace_with == LRU) {
                 pres->time_accessed = get_access_time();
             }
+        }
         }
 
         if (running_mode == DEBUG)
