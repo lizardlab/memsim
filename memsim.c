@@ -193,6 +193,7 @@ void lru(head_t head, struct PTE *newPTE){
         replace_PTE(&head, lruPTE, newPTE);
     } else {
         ++hits_ctr;
+        free(newPTE);
 
         if (newPTE->dirty == 1)
             pres->dirty = 1;
@@ -226,6 +227,7 @@ void fifo(head_t head, struct PTE *newPTE){
         ++queue_size;
     } else {
         ++hits_ctr;
+        free(newPTE);
 
         if (newPTE->dirty == 1)
             pres->dirty = 1;
