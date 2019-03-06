@@ -346,7 +346,7 @@ PTE *find_LRU(head_t *head) {
     struct PTE *lruPTE;
     struct PTE *page;
     int min = INT_MAX;
-    page = TAILQ_NEXT(TAILQ_FIRST(head), page_table);
+    page = TAILQ_FIRST(head);
     while(page != NULL){
         if(page->time_accessed < min){
             memcpy(lruPTE, page, sizeof(PTE));
