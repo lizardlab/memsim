@@ -307,11 +307,9 @@ PTE *PTE_present(head_t *head, PTE *entry) {
     if(running_mode == DEBUG) printf("Inside PTE present\n");
 
     struct PTE *page;
-    page = TAILQ_NEXT(TAILQ_FIRST(head), page_table);
-    while(page != NULL){
+    TAILQ_FOREACH(page, head, page_table){
         if(page->virtual_page_number == entry->virtual_page_number)
             return page;
-        page = TAILQ_NEXT(page, page_table);
     }
     return NULL;
 }
@@ -348,13 +346,13 @@ PTE *find_LRU(head_t *head) {
     struct PTE *lruPTE;
     struct PTE *page;
     int min = INT_MAX;
-    TAILQ_FOREACH(page, head, page_table){
+    page = TAILQ_NEXT(TAILQ_FIRST(head), page_table);
+    while(page != NULL){
         if(page->time_accessed < min){
-            lruPTE = page;
+            memcpy(lruPTE, page, sizeof(PTE));
             min = page->time_accessed;
-//            printf("page time accessed: %d\n", page->time_accessed);
-//            printf("value of dirty bit in find_LRU: %d for VPN %x, access_time = %d\n", lruPTE->dirty, lruPTE->virtual_page_number, lruPTE->time_accessed);
         }
+        page = TAILQ_NEXT(page, page_table);
     }
     printf("lruPTE vpn is %d\n", lruPTE->virtual_page_number);
     return lruPTE;
