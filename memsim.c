@@ -247,6 +247,7 @@ void vms(head_t *head1, head_t *head2, head_t *cleanhead, head_t *dirtyhead, PTE
         if (newPTE->PID == 1) {
             if ( (foundPTE = PTE_present(head1, newPTE)) != NULL) {
                 ++hits_ctr;
+                free(newPTE);
             } else if ( (foundPTE = PTE_present(cleanhead, newPTE)) != NULL) {
                 PTE_reclaim(cleanhead, head1, foundPTE);
             } else if ( (foundPTE = PTE_present(dirtyhead, newPTE)) != NULL) {
